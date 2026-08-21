@@ -1,7 +1,13 @@
 package com.life.app.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,16 +20,21 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,6 +44,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.life.app.data.HabitCatalog
+import com.life.app.data.HabitDef
 import com.life.app.data.HabitSuggestion
 import com.life.app.data.LifeEvent
 import com.life.app.data.habitById
@@ -44,7 +57,9 @@ fun HabitPickerSheet(
     query: String,
     onQueryChange: (String) -> Unit,
     suggestions: List<HabitSuggestion>,
+    existingHabitIds: Set<String>,
     onPick: (HabitSuggestion) -> Unit,
+    onEdit: (HabitSuggestion) -> Unit,
     onDismiss: () -> Unit
 ) {
     val focus = remember { FocusRequester() }
@@ -63,6 +78,12 @@ fun HabitPickerSheet(
                 .padding(bottom = 24.dp)
         ) {
             Text("Log a habit", fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
+            Text(
+                "Hold a habit to edit it.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 13.sp,
+                modifier = Modifier.padding(top = 4.dp)
+            )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = query,
@@ -83,21 +104,34 @@ fun HabitPickerSheet(
             Spacer(Modifier.height(8.dp))
             LazyColumn(Modifier.heightIn(max = 420.dp)) {
                 items(suggestions, key = { "${it.isCreate}:${it.habitId}:${it.name}" }) { s ->
-                    HabitSuggestionRow(s) { onPick(s) }
+                    HabitSuggestionRow(
+                        s = s,
+                        onClick = { onPick(s) },
+                        onLongClick = if (!s.isCreate && s.habitId != null && s.habitId in existingHabitIds) {
+                            { onEdit(s) }
+                        } else {
+                            null
+                        }
+                    )
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun HabitSuggestionRow(s: HabitSuggestion, onClick: () -> Unit) {
+private fun HabitSuggestionRow(
+    s: HabitSuggestion,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null
+) {
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = 8.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -152,3 +186,121 @@ fun HabitEventSheet(
 
 fun habitNameOf(event: LifeEvent, data: com.life.app.data.AppData): String =
     event.habitId?.let { data.habitById(it)?.name } ?: "Habit"
+
+private val HABIT_ICONS: List<String> = (
+    listOf("•") + HabitCatalog.ALL.map { it.icon }
+    ).distinct()
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun HabitEditSheet(
+    habit: HabitDef,
+    logCount: Int,
+    reassignEvent: Boolean,
+    otherNames: List<String> = emptyList(),
+    onSave: (name: String, icon: String) -> Unit,
+    onSaveAsNew: (name: String, icon: String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var name by remember { mutableStateOf(habit.name) }
+    var icon by remember { mutableStateOf(habit.icon.ifBlank { "•" }) }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        delay(120)
+        runCatching { focus.requestFocus() }
+    }
+
+    val trimmed = name.trim()
+    val canSave = trimmed.isNotEmpty()
+    val sameName = trimmed.equals(habit.name, ignoreCase = true)
+    val nameTaken = otherNames.any { it.equals(trimmed, ignoreCase = true) }
+    val canSaveAsNew = canSave && !sameName && !nameTaken
+    val icons = remember(habit.icon) {
+        val current = habit.icon.ifBlank { "•" }
+        if (current in HABIT_ICONS) HABIT_ICONS else listOf(current) + HABIT_ICONS
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 28.dp)
+        ) {
+            Text("Edit habit", fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focus),
+                label = { Text("Name") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
+            )
+            Spacer(Modifier.height(12.dp))
+            Text("Icon", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            Spacer(Modifier.height(6.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                icons.forEach { choice ->
+                    val selected = icon == choice
+                    Text(
+                        choice,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (selected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.surfaceVariant
+                            )
+                            .clickable { icon = choice }
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        fontSize = 18.sp
+                    )
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            Button(
+                onClick = { onSave(trimmed, icon) },
+                enabled = canSave,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Save changes")
+            }
+            Text(
+                when {
+                    nameTaken -> "Merges all logs into the existing “$trimmed” habit."
+                    logCount <= 0 -> "No logs yet. This just updates the habit."
+                    logCount == 1 -> "Updates this habit on the one timeline log."
+                    else -> "Updates this habit on all $logCount timeline logs."
+                },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 6.dp, bottom = 12.dp)
+            )
+            OutlinedButton(
+                onClick = { onSaveAsNew(trimmed, icon) },
+                enabled = canSaveAsNew,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Save as new")
+            }
+            Text(
+                if (reassignEvent) {
+                    "This log becomes “$trimmed”. Other logs stay on “${habit.name}”."
+                } else {
+                    "Creates a separate habit. Existing logs stay on “${habit.name}”."
+                },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 6.dp)
+            )
+        }
+    }
+}

@@ -10,6 +10,7 @@ import com.life.app.data.AppData
 import com.life.app.data.EventKind
 import com.life.app.data.HabitCatalog
 import com.life.app.data.HabitDef
+import com.life.app.data.HabitDomain
 import com.life.app.data.HabitSuggestion
 import com.life.app.data.LifeEvent
 import com.life.app.data.LifeRepository
@@ -59,6 +60,14 @@ class LifeViewModel(
                 )
             )
         }
+    }
+
+    fun editHabit(habitId: String, name: String, icon: String) {
+        mutate { HabitDomain.edit(it, habitId, name, icon) }
+    }
+
+    fun saveHabitAsNew(name: String, icon: String, reassignEventId: String? = null) {
+        mutate { HabitDomain.saveAsNew(it, name, icon, reassignEventId) }
     }
 
     fun logNote(body: String, tags: List<String>, isWant: Boolean = false, dueDate: String? = null) {

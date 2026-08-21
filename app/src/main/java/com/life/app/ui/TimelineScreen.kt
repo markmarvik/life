@@ -46,8 +46,11 @@ import androidx.compose.ui.unit.sp
 import com.life.app.data.AppData
 import com.life.app.data.DataLoadDiagnostics
 import com.life.app.data.EventKind
+import com.life.app.data.HabitDef
+import com.life.app.data.HabitDomain
 import com.life.app.data.HabitRanker
 import com.life.app.data.LifeEvent
+import com.life.app.data.habitById
 import com.life.app.data.Money
 import com.life.app.data.availableTags
 import com.life.app.data.balanceMinor
@@ -65,6 +68,11 @@ sealed interface CaptureUi {
     data class Note(val editing: LifeEvent? = null) : CaptureUi
     data class Finance(val editing: LifeEvent? = null) : CaptureUi
     data class HabitEvent(val event: LifeEvent) : CaptureUi
+    data class EditHabit(
+        val habit: HabitDef,
+        val sourceEventId: String? = null,
+        val returnToPicker: Boolean = false
+    ) : CaptureUi
     data class Reflect(val event: LifeEvent) : CaptureUi
 }
 
@@ -225,6 +233,20 @@ fun TimelineScreen(
                                         EventKind.NOTE -> CaptureUi.Note(event)
                                         EventKind.FINANCE -> CaptureUi.Finance(event)
                                     }
+                                },
+                                onLongClick = if (event.kind == EventKind.HABIT) {
+                                    {
+                                        val habit = event.habitId?.let { data.habitById(it) }
+                                        if (habit != null) {
+                                            haptics.tick()
+                                            capture = CaptureUi.EditHabit(
+                                                habit = habit,
+                                                sourceEventId = event.id
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    null
                                 }
                             )
                         }
@@ -254,11 +276,20 @@ fun TimelineScreen(
             query = habitQuery,
             onQueryChange = { habitQuery = it },
             suggestions = suggestions,
+            existingHabitIds = data.habits.filter { !it.archived }.map { it.id }.toSet(),
             onPick = {
                 haptics.success()
                 vm.logHabit(it)
                 habitQuery = ""
                 capture = CaptureUi.Hidden
+            },
+            onEdit = { suggestion ->
+                val habit = suggestion.habitId?.let { data.habitById(it) } ?: return@HabitPickerSheet
+                haptics.tick()
+                capture = CaptureUi.EditHabit(
+                    habit = habit,
+                    returnToPicker = true
+                )
             },
             onDismiss = { capture = CaptureUi.Hidden }
         )
@@ -315,6 +346,25 @@ fun TimelineScreen(
                 capture = CaptureUi.Hidden
             },
             onDismiss = { capture = CaptureUi.Hidden }
+        )
+        is CaptureUi.EditHabit -> HabitEditSheet(
+            habit = c.habit,
+            logCount = HabitDomain.logCount(data, c.habit.id),
+            reassignEvent = c.sourceEventId != null,
+            otherNames = data.habits.filter { !it.archived && it.id != c.habit.id }.map { it.name },
+            onSave = { name, icon ->
+                haptics.success()
+                vm.editHabit(c.habit.id, name, icon)
+                capture = if (c.returnToPicker) CaptureUi.Habit else CaptureUi.Hidden
+            },
+            onSaveAsNew = { name, icon ->
+                haptics.success()
+                vm.saveHabitAsNew(name, icon, reassignEventId = c.sourceEventId)
+                capture = if (c.returnToPicker) CaptureUi.Habit else CaptureUi.Hidden
+            },
+            onDismiss = {
+                capture = if (c.returnToPicker) CaptureUi.Habit else CaptureUi.Hidden
+            }
         )
         is CaptureUi.Reflect -> ReflectionSheet(
             event = c.event,
