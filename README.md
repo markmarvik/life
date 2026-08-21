@@ -12,7 +12,7 @@ This is a fresh app. It is not a fork of [Steady](https://github.com/markmarvik/
 2. Tap **+**.
 3. Pick **Habit**, **Note**, or **Finance**.
 
-- **Habit** — tap a suggestion, fuzzy-search what you already log, or type a new name. One tap writes it on the timeline *now*. Hold a habit to edit the name/icon: **Save changes** updates every log of that habit; **Save as new** keeps the original and creates a separate one. No due list, no skip, no schedule.
+- **Habit** — tap a suggestion, fuzzy-search what you already log, or type a new name. One tap writes it on the timeline *now*. Hold any habit — including the premade list — to edit it. **Save changes** updates that habit (and keeps its gray subtitle in Log a habit); **Save as new** creates a separate one. No due list, no skip, no schedule.
 - **Note** — one field for the thought, tags to find it later. Add **Want** plus a date chip (Today / Tomorrow / pick a day) to make it a commitment: it sits in **Upcoming** above the timeline, reminds the evening before and the morning of, and **Didn’t** requires a written reason (10 words, more if you keep skipping). **Done** is one tap.
 - **Finance** — **+** income / **−** expense, amount, payee, category. Header shows current balance. Suggestions learn from what you actually log.
 

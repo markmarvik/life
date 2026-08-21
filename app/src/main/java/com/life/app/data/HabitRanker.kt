@@ -12,7 +12,10 @@ data class HabitSuggestion(
     val habitId: String?,
     val score: Double,
     val isCreate: Boolean = false
-)
+) {
+    /** Premade catalog rows and saved habits are long-press editable. */
+    val canEdit: Boolean get() = !isCreate && !habitId.isNullOrBlank()
+}
 
 object HabitRanker {
 
@@ -37,15 +40,13 @@ object HabitRanker {
             HabitSuggestion(
                 name = habit.name,
                 icon = habit.icon.ifBlank { "•" },
-                why = "",
+                why = habit.displayWhy(),
                 habitId = habit.id,
                 score = usageScore(u, nowMs) + 0.5
             )
         }
 
-        val createdNames = created.map { it.name.lowercase() }.toSet()
-        val catalog = HabitCatalog.ALL
-            .filter { it.name.lowercase() !in createdNames }
+        val catalog = HabitCatalog.stillSuggested(data)
             .map { cat ->
                 HabitSuggestion(
                     name = cat.name,
@@ -56,7 +57,7 @@ object HabitRanker {
                 )
             }
 
-        val all = created + catalog
+        val all = (created + catalog).distinctBy { it.habitId ?: "create:${it.name.lowercase()}" }
 
         val filtered = if (q.isEmpty()) {
             all.sortedWith(

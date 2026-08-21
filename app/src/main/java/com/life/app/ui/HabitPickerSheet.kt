@@ -57,7 +57,6 @@ fun HabitPickerSheet(
     query: String,
     onQueryChange: (String) -> Unit,
     suggestions: List<HabitSuggestion>,
-    existingHabitIds: Set<String>,
     onPick: (HabitSuggestion) -> Unit,
     onEdit: (HabitSuggestion) -> Unit,
     onDismiss: () -> Unit
@@ -107,7 +106,7 @@ fun HabitPickerSheet(
                     HabitSuggestionRow(
                         s = s,
                         onClick = { onPick(s) },
-                        onLongClick = if (!s.isCreate && s.habitId != null && s.habitId in existingHabitIds) {
+                        onLongClick = if (s.canEdit) {
                             { onEdit(s) }
                         } else {
                             null
@@ -126,27 +125,17 @@ private fun HabitSuggestionRow(
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null
 ) {
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    Row(
+    HabitLine(
+        icon = s.icon,
+        title = if (s.isCreate) "Create “${s.name}”" else s.name,
+        why = s.why,
+        titleWeight = if (s.isCreate) FontWeight.SemiBold else FontWeight.Medium,
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(horizontal = 8.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(s.icon.ifBlank { "•" }, fontSize = 20.sp, modifier = Modifier.width(32.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                if (s.isCreate) "Create “${s.name}”" else s.name,
-                fontWeight = if (s.isCreate) FontWeight.SemiBold else FontWeight.Medium,
-                fontSize = 16.sp
-            )
-            if (s.why.isNotBlank()) {
-                Text(s.why, color = muted, fontSize = 12.sp)
-            }
-        }
-    }
+            .padding(horizontal = 8.dp, vertical = 12.dp)
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -187,6 +176,26 @@ fun HabitEventSheet(
 fun habitNameOf(event: LifeEvent, data: com.life.app.data.AppData): String =
     event.habitId?.let { data.habitById(it)?.name } ?: "Habit"
 
+@Composable
+private fun HabitLine(
+    icon: String,
+    title: String,
+    why: String,
+    titleWeight: FontWeight,
+    modifier: Modifier = Modifier
+) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Text(icon.ifBlank { "•" }, fontSize = 20.sp, modifier = Modifier.width(32.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, fontWeight = titleWeight, fontSize = 16.sp)
+            if (why.isNotBlank()) {
+                Text(why, color = muted, fontSize = 12.sp)
+            }
+        }
+    }
+}
+
 private val HABIT_ICONS: List<String> = (
     listOf("•") + HabitCatalog.ALL.map { it.icon }
     ).distinct()
@@ -198,12 +207,13 @@ fun HabitEditSheet(
     logCount: Int,
     reassignEvent: Boolean,
     otherNames: List<String> = emptyList(),
-    onSave: (name: String, icon: String) -> Unit,
-    onSaveAsNew: (name: String, icon: String) -> Unit,
+    onSave: (name: String, icon: String, why: String) -> Unit,
+    onSaveAsNew: (name: String, icon: String, why: String) -> Unit,
     onDismiss: () -> Unit
 ) {
     var name by remember { mutableStateOf(habit.name) }
     var icon by remember { mutableStateOf(habit.icon.ifBlank { "•" }) }
+    var why by remember { mutableStateOf(habit.why) }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) {
         delay(120)
@@ -211,6 +221,7 @@ fun HabitEditSheet(
     }
 
     val trimmed = name.trim()
+    val trimmedWhy = why.trim()
     val canSave = trimmed.isNotEmpty()
     val sameName = trimmed.equals(habit.name, ignoreCase = true)
     val nameTaken = otherNames.any { it.equals(trimmed, ignoreCase = true) }
@@ -232,6 +243,18 @@ fun HabitEditSheet(
         ) {
             Text("Edit habit", fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
             Spacer(Modifier.height(12.dp))
+            HabitLine(
+                icon = icon,
+                title = trimmed.ifBlank { habit.name },
+                why = trimmedWhy,
+                titleWeight = FontWeight.Medium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(horizontal = 8.dp, vertical = 12.dp)
+            )
+            Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -241,6 +264,15 @@ fun HabitEditSheet(
                 label = { Text("Name") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = why,
+                onValueChange = { why = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Gray text") },
+                placeholder = { Text("Shown under the name") },
+                singleLine = true
             )
             Spacer(Modifier.height(12.dp))
             Text("Icon", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
@@ -267,7 +299,7 @@ fun HabitEditSheet(
             }
             Spacer(Modifier.height(16.dp))
             Button(
-                onClick = { onSave(trimmed, icon) },
+                onClick = { onSave(trimmed, icon, trimmedWhy) },
                 enabled = canSave,
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -285,7 +317,7 @@ fun HabitEditSheet(
                 modifier = Modifier.padding(top = 6.dp, bottom = 12.dp)
             )
             OutlinedButton(
-                onClick = { onSaveAsNew(trimmed, icon) },
+                onClick = { onSaveAsNew(trimmed, icon, trimmedWhy) },
                 enabled = canSaveAsNew,
                 modifier = Modifier.fillMaxWidth()
             ) {

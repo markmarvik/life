@@ -19,6 +19,7 @@ import com.life.app.data.WantDomain
 import com.life.app.data.WantStatus
 import com.life.app.data.findHabitByName
 import com.life.app.data.habitById
+import com.life.app.data.toDef
 import com.life.app.data.withCategory
 import com.life.app.data.withEvent
 import com.life.app.data.withHabit
@@ -62,12 +63,17 @@ class LifeViewModel(
         }
     }
 
-    fun editHabit(habitId: String, name: String, icon: String) {
-        mutate { HabitDomain.edit(it, habitId, name, icon) }
+    fun editHabit(habitId: String, name: String, icon: String, why: String = "") {
+        mutate { HabitDomain.edit(it, habitId, name, icon, why) }
     }
 
-    fun saveHabitAsNew(name: String, icon: String, reassignEventId: String? = null) {
-        mutate { HabitDomain.saveAsNew(it, name, icon, reassignEventId) }
+    fun saveHabitAsNew(
+        name: String,
+        icon: String,
+        why: String = "",
+        reassignEventId: String? = null
+    ) {
+        mutate { HabitDomain.saveAsNew(it, name, icon, why, reassignEventId) }
     }
 
     fun logNote(body: String, tags: List<String>, isWant: Boolean = false, dueDate: String? = null) {
@@ -235,7 +241,7 @@ class LifeViewModel(
                 data.habitById(id)?.let { return data to it }
                 HabitCatalog.byId(id)?.let { cat ->
                     data.findHabitByName(cat.name)?.let { return data to it }
-                    val created = HabitDef(id = cat.id, name = cat.name, icon = cat.icon, createdAt = now)
+                    val created = cat.toDef(createdAt = now)
                     return data.withHabit(created) to created
                 }
             }
@@ -243,12 +249,13 @@ class LifeViewModel(
         data.findHabitByName(suggestion.name)?.let { return data to it }
         val catalog = HabitCatalog.byName(suggestion.name)
         val habit = if (catalog != null) {
-            HabitDef(id = catalog.id, name = catalog.name, icon = catalog.icon, createdAt = now)
+            catalog.toDef(createdAt = now)
         } else {
             HabitDef(
                 id = "h_${UUID.randomUUID().toString().take(8)}",
                 name = suggestion.name.trim(),
                 icon = suggestion.icon.takeUnless { it == "＋" || it.isBlank() } ?: "•",
+                why = suggestion.why.takeUnless { it == "Create and log" }.orEmpty(),
                 createdAt = now
             )
         }

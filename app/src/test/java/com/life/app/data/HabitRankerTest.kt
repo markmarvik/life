@@ -1,6 +1,7 @@
 package com.life.app.data
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.LocalDateTime
@@ -61,6 +62,28 @@ class HabitRankerTest {
     @Test
     fun catalogAppearsUntilCreated() {
         val ranked = HabitRanker.suggest(AppData(), 1L, "Brush", zone)
-        assertTrue(ranked.any { it.name.startsWith("Brush") && !it.isCreate })
+        val brush = ranked.first { it.name.startsWith("Brush") && !it.isCreate }
+        assertEquals("Dental foundation.", brush.why)
+    }
+
+    @Test
+    fun renamedCatalogKeepsWhyAndDoesNotResurfaceDefault() {
+        val data = AppData(
+            habits = listOf(
+                HabitDef("cat_brush", "Brush teeth", icon = "🪥", why = "Dental foundation.", createdAt = 1L)
+            )
+        )
+        val ranked = HabitRanker.suggest(data, 1L, "", zone)
+        assertEquals(1, ranked.count { it.habitId == "cat_brush" })
+        assertEquals("Brush teeth", ranked.first { it.habitId == "cat_brush" }.name)
+        assertEquals("Dental foundation.", ranked.first { it.habitId == "cat_brush" }.why)
+        assertTrue(ranked.none { it.name == "Brush + floss" })
+    }
+
+    @Test
+    fun eveningHygieneIsNotInCatalog() {
+        assertFalse(HabitCatalog.ALL.any { it.name.contains("hygiene", ignoreCase = true) })
+        val ranked = HabitRanker.suggest(AppData(), 1L, "Evening", zone)
+        assertTrue(ranked.none { it.name.contains("hygiene", ignoreCase = true) && !it.isCreate })
     }
 }

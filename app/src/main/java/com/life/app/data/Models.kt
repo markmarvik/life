@@ -21,6 +21,7 @@ data class HabitDef(
     val id: String,
     val name: String,
     val icon: String = "",
+    val why: String = "",
     val archived: Boolean = false,
     val createdAt: Long = 0L
 )

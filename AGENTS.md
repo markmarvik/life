@@ -9,14 +9,22 @@ scores, groups, widgets, wearables, Deep Work, Path, or LAN web.
 ## Product rules
 
 - Habits are log-when-you-do-it. No schedule, skip, or due list.
-- Long-press a habit (picker or timeline row) to edit name/icon.
-  - **Save changes** updates `HabitDef`. Logs keep the same `habitId`, so
-    the whole timeline for that habit shows the new name/icon. Renaming onto
-    an existing habit merges the logs and drops the old def (`HabitDomain.edit`).
-  - **Save as new** inserts a separate habit. Existing logs stay. If the
-    long-press was a timeline row, only that one log is reassigned
+- Long-press a habit (picker or timeline row), including premade catalog
+  rows, to edit name / icon / gray subtitle.
+  - **Save changes** updates or *claims* that slot. Catalog items keep their
+    catalog id so the default row does not come back next to the edit
+    (`HabitDomain.edit`). Logs keep the same `habitId`. Renaming onto an
+    existing habit merges the logs.
+  - **Save as new** inserts a separate custom habit. Existing logs stay. If
+    the long-press was a timeline row, only that one log is reassigned
     (`HabitDomain.saveAsNew`).
-  - Catalog suggestions that have never been logged are not editable.
+  - After edit, Log a habit still shows the gray `why` line under the name
+    (same treatment as “Dental foundation.”). `HabitSuggestion.canEdit` is
+    the long-press gate — premade rows included.
+  - There is no Evening hygiene catalog item; Brush + floss covers that.
+  - Do not regress these. `HabitCatalogRegressionTest` fails if a premade
+    row is not editable, a claimed catalog slot resurfaces the default, the
+    gray subtitle vanishes, or Evening hygiene comes back.
 - Notes: one body field + tags. **Want + a date chip** makes a commitment
   (date alone is just a tag). Upcoming sits above the timeline.
 - Complete a Want with one tap. Cancel/miss requires a written reason:

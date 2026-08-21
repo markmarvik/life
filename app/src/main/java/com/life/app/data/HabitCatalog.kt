@@ -27,8 +27,7 @@ object HabitCatalog {
         CatalogHabit("cat_strength", "Strength training", "🏋️", "Weights, bodyweight, or gym."),
         CatalogHabit("cat_read", "Read before bed", "📖", "Calm input, not scroll."),
         CatalogHabit("cat_gratitude", "Gratitude / 3 things", "🙏", "Evening review."),
-        CatalogHabit("cat_no_screens", "No screens wind-down", "📵", "Protect melatonin."),
-        CatalogHabit("cat_evening_hygiene", "Evening hygiene", "🪥", "Brush + floss at night.")
+        CatalogHabit("cat_no_screens", "No screens wind-down", "📵", "Protect melatonin.")
     )
 
     fun byId(id: String): CatalogHabit? = ALL.firstOrNull { it.id == id }
@@ -37,4 +36,21 @@ object HabitCatalog {
         val n = name.trim()
         return ALL.firstOrNull { it.name.equals(n, ignoreCase = true) }
     }
+
+    fun stillSuggested(data: AppData): List<CatalogHabit> {
+        val live = data.habits.filter { !it.archived }
+        val claimedIds = live.map { it.id }.toSet()
+        val claimedNames = live.map { it.name.lowercase() }.toSet()
+        return ALL.filter { it.id !in claimedIds && it.name.lowercase() !in claimedNames }
+    }
 }
+
+fun CatalogHabit.toDef(createdAt: Long = 0L) = HabitDef(
+    id = id,
+    name = name,
+    icon = icon,
+    why = why,
+    createdAt = createdAt
+)
+
+fun HabitDef.displayWhy(): String = why.ifBlank { HabitCatalog.byId(id)?.why.orEmpty() }

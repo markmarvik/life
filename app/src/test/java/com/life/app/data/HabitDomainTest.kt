@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.time.ZoneOffset
 
 class HabitDomainTest {
 
@@ -92,6 +93,28 @@ class HabitDomainTest {
         val next = HabitDomain.saveAsNew(data, "Run", "•", reassignEventId = "e1")
         assertEquals(2, next.habits.size)
         assertEquals("h2", next.events.single().habitId)
+    }
+
+    @Test
+    fun editClaimsCatalogSlotWithoutLeavingDefault() {
+        val data = AppData()
+        val next = HabitDomain.edit(data, "cat_brush", "Brush teeth", "🪥", "Dental foundation.", nowMs = 9L)
+        val claimed = next.habitById("cat_brush")
+        assertEquals("Brush teeth", claimed?.name)
+        assertEquals("Dental foundation.", claimed?.why)
+        assertEquals(1, next.habits.size)
+        val ranked = HabitRanker.suggest(next, 9L, "", ZoneOffset.UTC)
+        assertEquals(1, ranked.count { it.habitId == "cat_brush" })
+        assertTrue(ranked.none { it.name.equals("Brush + floss", ignoreCase = true) })
+        assertEquals("Dental foundation.", ranked.first { it.habitId == "cat_brush" }.why)
+    }
+
+    @Test
+    fun defForEditUsesCatalogBeforeFirstLog() {
+        val def = HabitDomain.defForEdit(AppData(), "cat_brush")
+        assertEquals("Brush + floss", def?.name)
+        assertEquals("Dental foundation.", def?.why)
+        assertEquals("cat_brush", def?.id)
     }
 
     @Test

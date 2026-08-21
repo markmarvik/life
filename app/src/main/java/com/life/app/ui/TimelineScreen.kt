@@ -50,7 +50,6 @@ import com.life.app.data.HabitDef
 import com.life.app.data.HabitDomain
 import com.life.app.data.HabitRanker
 import com.life.app.data.LifeEvent
-import com.life.app.data.habitById
 import com.life.app.data.Money
 import com.life.app.data.availableTags
 import com.life.app.data.balanceMinor
@@ -236,7 +235,7 @@ fun TimelineScreen(
                                 },
                                 onLongClick = if (event.kind == EventKind.HABIT) {
                                     {
-                                        val habit = event.habitId?.let { data.habitById(it) }
+                                        val habit = event.habitId?.let { HabitDomain.defForEdit(data, it) }
                                         if (habit != null) {
                                             haptics.tick()
                                             capture = CaptureUi.EditHabit(
@@ -276,7 +275,6 @@ fun TimelineScreen(
             query = habitQuery,
             onQueryChange = { habitQuery = it },
             suggestions = suggestions,
-            existingHabitIds = data.habits.filter { !it.archived }.map { it.id }.toSet(),
             onPick = {
                 haptics.success()
                 vm.logHabit(it)
@@ -284,7 +282,8 @@ fun TimelineScreen(
                 capture = CaptureUi.Hidden
             },
             onEdit = { suggestion ->
-                val habit = suggestion.habitId?.let { data.habitById(it) } ?: return@HabitPickerSheet
+                val habit = suggestion.habitId?.let { HabitDomain.defForEdit(data, it) }
+                    ?: return@HabitPickerSheet
                 haptics.tick()
                 capture = CaptureUi.EditHabit(
                     habit = habit,
@@ -352,14 +351,14 @@ fun TimelineScreen(
             logCount = HabitDomain.logCount(data, c.habit.id),
             reassignEvent = c.sourceEventId != null,
             otherNames = data.habits.filter { !it.archived && it.id != c.habit.id }.map { it.name },
-            onSave = { name, icon ->
+            onSave = { name, icon, why ->
                 haptics.success()
-                vm.editHabit(c.habit.id, name, icon)
+                vm.editHabit(c.habit.id, name, icon, why)
                 capture = if (c.returnToPicker) CaptureUi.Habit else CaptureUi.Hidden
             },
-            onSaveAsNew = { name, icon ->
+            onSaveAsNew = { name, icon, why ->
                 haptics.success()
-                vm.saveHabitAsNew(name, icon, reassignEventId = c.sourceEventId)
+                vm.saveHabitAsNew(name, icon, why, reassignEventId = c.sourceEventId)
                 capture = if (c.returnToPicker) CaptureUi.Habit else CaptureUi.Hidden
             },
             onDismiss = {
