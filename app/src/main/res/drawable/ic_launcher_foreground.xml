@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Spine -->
+    <path
+        android:pathData="M54,28 L54,80"
+        android:strokeWidth="3.5"
+        android:strokeColor="#A6E3A1"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <!-- Three event nodes -->
+    <path
+        android:fillColor="#A6E3A1"
+        android:pathData="M54,34m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
+    <path
+        android:fillColor="#88C0D0"
+        android:pathData="M54,54m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
+    <path
+        android:fillColor="#EBCB8B"
+        android:pathData="M54,74m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
+</vector>
