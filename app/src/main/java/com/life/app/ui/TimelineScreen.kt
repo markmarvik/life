@@ -4,7 +4,6 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,13 +17,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,23 +32,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.content.ContextCompat
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.life.app.data.AppData
+import com.life.app.data.CaptureConfidence
+import com.life.app.data.CaptureDraft
+import com.life.app.data.CaptureParser
 import com.life.app.data.DataLoadDiagnostics
 import com.life.app.data.EventKind
 import com.life.app.data.HabitDef
 import com.life.app.data.HabitDomain
 import com.life.app.data.HabitRanker
 import com.life.app.data.LifeEvent
-import com.life.app.data.Money
-import com.life.app.data.availableTags
-import com.life.app.data.balanceMinor
 import com.life.app.data.WantDomain
+import com.life.app.data.availableTags
 import com.life.app.data.groupEvents
 import com.life.app.util.rememberHaptics
 import java.time.LocalDate
@@ -63,6 +58,7 @@ enum class TimelineFilter { ALL, HABIT, NOTE, FINANCE }
 sealed interface CaptureUi {
     data object Hidden : CaptureUi
     data object PickType : CaptureUi
+    data object Funnel : CaptureUi
     data object Habit : CaptureUi
     data class Note(val editing: LifeEvent? = null) : CaptureUi
     data class Finance(val editing: LifeEvent? = null) : CaptureUi
@@ -86,6 +82,8 @@ fun TimelineScreen(
     var filter by remember { mutableStateOf(TimelineFilter.ALL) }
     var capture by remember { mutableStateOf<CaptureUi>(CaptureUi.Hidden) }
     var habitQuery by remember { mutableStateOf("") }
+    var composerText by remember { mutableStateOf("") }
+    var pending by remember { mutableStateOf<List<CaptureDraft>>(emptyList()) }
     var showCorrupt by remember { mutableStateOf(DataLoadDiagnostics.shouldShowBanner()) }
     val today = remember { LocalDate.now() }
     val upcoming = remember(data.events) { WantDomain.upcoming(data, today) }
@@ -106,20 +104,63 @@ fun TimelineScreen(
         HabitRanker.suggest(data, System.currentTimeMillis(), habitQuery)
     }
 
+    fun sendComposer() {
+        val typed = composerText
+        val extra = if (typed.isBlank()) emptyList() else CaptureParser.parse(typed, data)
+        val all = pending + extra
+        if (all.isEmpty()) {
+            capture = CaptureUi.PickType
+            return
+        }
+        val auto = all.filter { it.confidence != CaptureConfidence.MID }
+        val mid = all.filter { it.confidence == CaptureConfidence.MID }
+        if (auto.isNotEmpty()) {
+            haptics.success()
+            vm.applyDrafts(auto)
+            if (auto.any { it.isWant }) maybeAskNotifications(context, notifPerm)
+        }
+        pending = mid
+        composerText = ""
+        if (mid.isNotEmpty()) haptics.tick()
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
+        bottomBar = {
+            CaptureComposer(
+                text = composerText,
+                onTextChange = { composerText = it },
+                pending = pending,
+                onSend = { sendComposer() },
+                onConfirmDraft = { draft ->
+                    haptics.success()
+                    vm.applyDrafts(listOf(draft))
+                    pending = pending.filterNot { it === draft }
+                },
+                onDismissDraft = { draft ->
+                    pending = pending.filterNot { it === draft }
+                },
+                onConfirmAll = {
+                    if (pending.isNotEmpty()) {
+                        haptics.success()
+                        vm.applyDrafts(pending)
+                        pending = emptyList()
+                    }
+                },
+                onPickType = {
+                    haptics.tick()
+                    habitQuery = ""
+                    capture = when (it) {
+                        CaptureKind.HABIT -> CaptureUi.Habit
+                        CaptureKind.NOTE -> CaptureUi.Note()
+                        CaptureKind.FINANCE -> CaptureUi.Finance()
+                    }
+                },
+                onLongPressPicker = {
                     haptics.tick()
                     capture = CaptureUi.PickType
-                },
-                shape = CircleShape,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
-            }
+                }
+            )
         }
     ) { padding ->
         Column(
@@ -134,9 +175,9 @@ fun TimelineScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Life", fontWeight = FontWeight.Bold, fontSize = 28.sp, modifier = Modifier.weight(1f))
-                BalancePill(Money.format(data.balanceMinor(), data.currencyCode)) {
+                FunnelHeader(data = data, today = today) {
                     haptics.tick()
-                    capture = CaptureUi.Finance()
+                    capture = CaptureUi.Funnel
                 }
                 IconButton(onClick = onOpenSettings) {
                     Icon(Icons.Default.Settings, contentDescription = "Settings")
@@ -202,7 +243,7 @@ fun TimelineScreen(
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            "Tap + to log your day.",
+                            "Type what happened.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -210,7 +251,7 @@ fun TimelineScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 96.dp, top = 8.dp)
+                    contentPadding = PaddingValues(bottom = 24.dp, top = 8.dp)
                 ) {
                     groups.forEach { day ->
                         item(key = "h-${day.date}") {
@@ -269,6 +310,16 @@ fun TimelineScreen(
                     CaptureKind.FINANCE -> CaptureUi.Finance()
                 }
             },
+            onDismiss = { capture = CaptureUi.Hidden }
+        )
+        CaptureUi.Funnel -> FunnelSheet(
+            data = data,
+            today = today,
+            onSaveRecurring = { vm.updateRecurring(it) },
+            onDeleteRecurring = { vm.deleteRecurring(it) },
+            onSavePlanned = { vm.updatePlanned(it) },
+            onDeletePlanned = { vm.deletePlanned(it) },
+            onSaveSavings = { vm.updateSettings(monthlySavingsMinor = it) },
             onDismiss = { capture = CaptureUi.Hidden }
         )
         CaptureUi.Habit -> HabitPickerSheet(
@@ -390,16 +441,3 @@ private fun maybeAskNotifications(
     if (!granted) launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
 }
 
-@Composable
-private fun BalancePill(text: String, onClick: () -> Unit) {
-    Text(
-        text,
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp
-    )
-}

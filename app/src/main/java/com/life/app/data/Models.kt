@@ -17,6 +17,45 @@ enum class MoneyDirection { IN, OUT }
 enum class WantStatus { NONE, OPEN, DONE, CANCELED, MISSED }
 
 @Serializable
+enum class RecurringCadence { WEEKLY, MONTHLY, YEARLY }
+
+@Serializable
+data class RecurringDef(
+    val id: String,
+    val name: String,
+    val amountMinor: Long,
+    val direction: MoneyDirection = MoneyDirection.OUT,
+    val cadence: RecurringCadence = RecurringCadence.MONTHLY,
+    val until: String? = null,
+    val createdAt: Long = 0L
+) {
+    fun isActive(today: LocalDate): Boolean {
+        val end = until?.let {
+            try {
+                LocalDate.parse(it)
+            } catch (_: Exception) {
+                null
+            }
+        } ?: return true
+        return !today.isAfter(end)
+    }
+
+    fun monthlyAmountMinor(): Long = when (cadence) {
+        RecurringCadence.WEEKLY -> amountMinor * 4
+        RecurringCadence.MONTHLY -> amountMinor
+        RecurringCadence.YEARLY -> amountMinor / 12
+    }
+}
+
+@Serializable
+data class PlannedItem(
+    val id: String,
+    val name: String,
+    val amountMinor: Long,
+    val createdAt: Long = 0L
+)
+
+@Serializable
 data class HabitDef(
     val id: String,
     val name: String,
@@ -68,10 +107,13 @@ data class AppData(
     val colorScheme: String = "default",
     val backgroundMode: String = "dark",
     val wantStrikeStreak: Int = 0,
-    val wantRemindersEnabled: Boolean = true
+    val wantRemindersEnabled: Boolean = true,
+    val recurring: List<RecurringDef> = emptyList(),
+    val planned: List<PlannedItem> = emptyList(),
+    val monthlySavingsMinor: Long = 0L
 ) {
     companion object {
-        const val SCHEMA_VERSION = 2
+        const val SCHEMA_VERSION = 3
     }
 }
 
