@@ -54,7 +54,7 @@ import com.life.app.data.Money
 import com.life.app.data.ThemeOptions
 import java.time.LocalDate
 
-private val COMMON_CURRENCIES = listOf("USD", "EUR", "GBP", "NOK", "SEK", "DKK", "JPY", "CAD", "AUD")
+private val COMMON_CURRENCIES = listOf("RSD", "EUR", "USD", "GBP", "NOK", "SEK", "DKK", "JPY", "CAD", "AUD")
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -66,6 +66,9 @@ fun SettingsScreen(
     val context = LocalContext.current
     var openingText by remember(data.openingBalanceMinor, data.currencyCode) {
         mutableStateOf(Money.formatMajorPlain(data.openingBalanceMinor, data.currencyCode))
+    }
+    var savingsText by remember(data.monthlySavingsMinor, data.currencyCode) {
+        mutableStateOf(Money.formatMajorPlain(data.monthlySavingsMinor, data.currencyCode))
     }
     var currency by remember(data.currencyCode) { mutableStateOf(data.currencyCode) }
     var status by remember { mutableStateOf<String?>(null) }
@@ -123,6 +126,15 @@ fun SettingsScreen(
             )
             Spacer(Modifier.height(10.dp))
             OutlinedTextField(
+                value = savingsText,
+                onValueChange = { savingsText = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Monthly savings") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            )
+            Spacer(Modifier.height(10.dp))
+            OutlinedTextField(
                 value = currency,
                 onValueChange = { currency = it.uppercase().take(3) },
                 modifier = Modifier.fillMaxWidth(),
@@ -139,7 +151,12 @@ fun SettingsScreen(
             Button(
                 onClick = {
                     val minor = Money.parseToMinor(openingText, currency) ?: 0L
-                    vm.updateSettings(openingBalanceMinor = minor, currencyCode = currency.ifBlank { data.currencyCode })
+                    val sav = Money.parseToMinor(savingsText, currency) ?: 0L
+                    vm.updateSettings(
+                        openingBalanceMinor = minor,
+                        currencyCode = currency.ifBlank { data.currencyCode },
+                        monthlySavingsMinor = sav
+                    )
                     status = "Saved"
                 },
                 modifier = Modifier.fillMaxWidth()

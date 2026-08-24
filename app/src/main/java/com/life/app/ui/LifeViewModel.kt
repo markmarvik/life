@@ -7,22 +7,20 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.life.app.data.AndroidLifeRepository
 import com.life.app.data.AppData
+import com.life.app.data.CaptureApply
+import com.life.app.data.CaptureDraft
 import com.life.app.data.EventKind
-import com.life.app.data.HabitCatalog
-import com.life.app.data.HabitDef
 import com.life.app.data.HabitDomain
 import com.life.app.data.HabitSuggestion
 import com.life.app.data.LifeEvent
 import com.life.app.data.LifeRepository
 import com.life.app.data.MoneyDirection
+import com.life.app.data.PlannedItem
+import com.life.app.data.RecurringDef
 import com.life.app.data.WantDomain
 import com.life.app.data.WantStatus
-import com.life.app.data.findHabitByName
-import com.life.app.data.habitById
-import com.life.app.data.toDef
 import com.life.app.data.withCategory
 import com.life.app.data.withEvent
-import com.life.app.data.withHabit
 import com.life.app.data.withPayee
 import com.life.app.data.withTag
 import com.life.app.data.withoutEvent
@@ -51,7 +49,7 @@ class LifeViewModel(
     fun logHabit(suggestion: HabitSuggestion) {
         mutate { data ->
             val now = System.currentTimeMillis()
-            val (next, habit) = resolveHabit(data, suggestion, now)
+            val (next, habit) = CaptureApply.resolveHabit(data, suggestion, now)
             next.withEvent(
                 LifeEvent(
                     id = newId(),
@@ -61,6 +59,33 @@ class LifeViewModel(
                 )
             )
         }
+    }
+
+    fun applyDrafts(drafts: List<CaptureDraft>) {
+        if (drafts.isEmpty()) return
+        mutate { CaptureApply.applyAll(it, drafts) }
+    }
+
+    fun updateRecurring(def: RecurringDef) {
+        mutate { data ->
+            val without = data.recurring.filterNot { it.id == def.id }
+            data.copy(recurring = without + def)
+        }
+    }
+
+    fun deleteRecurring(id: String) {
+        mutate { it.copy(recurring = it.recurring.filterNot { r -> r.id == id }) }
+    }
+
+    fun updatePlanned(item: PlannedItem) {
+        mutate { data ->
+            val without = data.planned.filterNot { it.id == item.id }
+            data.copy(planned = without + item)
+        }
+    }
+
+    fun deletePlanned(id: String) {
+        mutate { it.copy(planned = it.planned.filterNot { p -> p.id == id }) }
     }
 
     fun editHabit(habitId: String, name: String, icon: String, why: String = "") {
@@ -178,7 +203,8 @@ class LifeViewModel(
         currencyCode: String? = null,
         colorScheme: String? = null,
         backgroundMode: String? = null,
-        wantRemindersEnabled: Boolean? = null
+        wantRemindersEnabled: Boolean? = null,
+        monthlySavingsMinor: Long? = null
     ) {
         mutate { data ->
             data.copy(
@@ -186,7 +212,8 @@ class LifeViewModel(
                 currencyCode = currencyCode?.ifBlank { data.currencyCode } ?: data.currencyCode,
                 colorScheme = colorScheme ?: data.colorScheme,
                 backgroundMode = backgroundMode ?: data.backgroundMode,
-                wantRemindersEnabled = wantRemindersEnabled ?: data.wantRemindersEnabled
+                wantRemindersEnabled = wantRemindersEnabled ?: data.wantRemindersEnabled,
+                monthlySavingsMinor = monthlySavingsMinor ?: data.monthlySavingsMinor
             )
         }
     }
@@ -229,37 +256,6 @@ class LifeViewModel(
                 if (ctx != null) WantScheduler.scheduleAll(ctx, next)
             }
         }
-    }
-
-    private fun resolveHabit(
-        data: AppData,
-        suggestion: HabitSuggestion,
-        now: Long
-    ): Pair<AppData, HabitDef> {
-        if (!suggestion.isCreate) {
-            suggestion.habitId?.let { id ->
-                data.habitById(id)?.let { return data to it }
-                HabitCatalog.byId(id)?.let { cat ->
-                    data.findHabitByName(cat.name)?.let { return data to it }
-                    val created = cat.toDef(createdAt = now)
-                    return data.withHabit(created) to created
-                }
-            }
-        }
-        data.findHabitByName(suggestion.name)?.let { return data to it }
-        val catalog = HabitCatalog.byName(suggestion.name)
-        val habit = if (catalog != null) {
-            catalog.toDef(createdAt = now)
-        } else {
-            HabitDef(
-                id = "h_${UUID.randomUUID().toString().take(8)}",
-                name = suggestion.name.trim(),
-                icon = suggestion.icon.takeUnless { it == "＋" || it.isBlank() } ?: "•",
-                why = suggestion.why.takeUnless { it == "Create and log" }.orEmpty(),
-                createdAt = now
-            )
-        }
-        return data.withHabit(habit) to habit
     }
 
     private fun newId(): String = UUID.randomUUID().toString()

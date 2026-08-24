@@ -32,7 +32,14 @@ scores, groups, widgets, wearables, Deep Work, Path, or LAN web.
   timeline.
 - Reminders: day before 20:00 and morning-of 08:00 (AlarmManager).
 - Finance: + income / − expense, learned payees/categories/amounts, live
-  balance. Amounts in minor units.
+  balance. Amounts in minor units. Monthly funnel in the header:
+  income → savings → recurring (`RecurringDef`) → planned → leftover.
+  Parser catches `rata 12k do 2027` and `hoću laptop 80k`.
+- Capture is one composer at the bottom (`CaptureParser` + `CaptureComposer`).
+  Split on `;` / newlines. High confidence logs immediately via `vm.applyDrafts`
+  (`CaptureApply`). Mid → preview chips. Low → Note. Type chips / long-press
+  send still open the old pickers. Sheets are for edit. No cloud LLM, no on-device
+  ML model — Fuzzy + HabitRanker + FinanceRanker + keyword rules only.
 
 ## Stack
 
