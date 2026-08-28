@@ -1,7 +1,8 @@
 # Life
 
-Native Android app. A timeline of past events: Habits, Notes, Finances.
-Local-first (DataStore JSON). No accounts, cloud, ads, or Steady import.
+Native Android app, plus a sibling native iPhone app in `ios/`.
+A timeline of past events: Habits, Notes, Finances.
+Local-first (JSON on device). No accounts, cloud, ads, or Steady import.
 
 This is not a Steady fork. Do not add planner, due lists, skip, streaks as
 scores, groups, widgets, wearables, Deep Work, Path, or LAN web.
@@ -37,7 +38,13 @@ scores, groups, widgets, wearables, Deep Work, Path, or LAN web.
 ## Stack
 
 Kotlin 2.0, Jetpack Compose Material3, minSdk 26, compileSdk 35,
-`applicationId com.life.app`. Repo: https://github.com/markmarvik/life (`main`).
+`applicationId com.life.app`.
+
+iPhone: SwiftUI, iOS 17, bundle id `com.life.app`, sources in `ios/`.
+Same product rules. JSON backups are interchangeable. Build only on a Mac
+with Xcode 15+ (`./ios/build.sh`). Install steps: `ios/INSTALL.md`.
+
+Repo: https://github.com/markmarvik/life (`main`).
 
 ## Commands
 
@@ -62,3 +69,15 @@ kdeconnect-cli -d 3c9d0eab879e4a6cbfc9db0b70a071f6 --share /tmp/Life.apk
 
 If that id is missing, wait a couple of seconds and use
 `kdeconnect-cli -a --id-only` (reachable devices only).
+
+### iPhone (Mac only)
+
+```bash
+./ios/build.sh            # compile
+./ios/build.sh test
+./ios/build.sh install    # plugged-in iPhone; needs signing team in Xcode first
+./ios/build.sh open
+```
+
+Do not try to share an IPA over KDE Connect from Linux. After Xcode Run:
+Settings → General → VPN & Device Management → trust the signing Apple ID.

@@ -34,3 +34,9 @@ captures/
 
 # Kotlin compiler sessions
 .kotlin/
+
+# Xcode / iOS
+xcuserdata/
+*.xcuserstate
+ios/build/
+DerivedData/

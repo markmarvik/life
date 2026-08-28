@@ -1,6 +1,7 @@
 # Life
 
-A simple Android timeline for **habits**, **notes**, and **money**.
+A simple timeline for **habits**, **notes**, and **money**. Native Android
+and a sibling native iPhone app in `ios/`.
 
 Local-first: no accounts, no ads, no cloud. Log what happened with one `+` button.
 
@@ -20,6 +21,8 @@ Filter chips: All · Habit · Note · Finance. Gear: opening balance, currency, 
 
 ## Build (CLI)
 
+### Android
+
 ```bash
 # One-time SDK (if you don't already have ~/android-sdk from Steady)
 ./scripts/setup-android-sdk.sh
@@ -31,6 +34,23 @@ Filter chips: All · Habit · Note · Finance. Gear: opening balance, currency, 
 
 Debug APK: `app/build/outputs/apk/debug/app-debug.apk`
 
+### iPhone
+
+Native SwiftUI app in `ios/`. **Must be built on a Mac with Xcode 15+.**
+This Linux tree cannot produce an IPA.
+
+```bash
+./ios/build.sh            # compile (Mac)
+./ios/build.sh install    # compile + install on a plugged-in iPhone
+./ios/build.sh open       # open ios/Life.xcodeproj
+```
+
+After a successful build the script prints install steps. They are also in
+[`ios/INSTALL.md`](ios/INSTALL.md): sign with your Apple ID in Xcode, plug
+the phone in, press Run, then trust the developer on the iPhone
+(Settings → General → VPN & Device Management). JSON backups are the same
+schema as Android.
+
 ## Layout
 
 ```
@@ -38,6 +58,11 @@ app/src/main/java/com/life/app/
   data/     models, DataStore repo, fuzzy search, habit/finance rankers, wants
   ui/       timeline + capture sheets + settings
   util/     haptics
+
+ios/Life/
+  Data/     same domain, JSON on disk
+  UI/       SwiftUI timeline + sheets
+  Reminders/ Want notifications
 ```
 
 Agent notes for this repo: `AGENTS.md`.
