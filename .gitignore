@@ -40,3 +40,7 @@ xcuserdata/
 *.xcuserstate
 ios/build/
 DerivedData/
+
+# Needle 2 static lib (~20MB) — fetch with ./scripts/fetch-needle.sh
+*.a
+app/src/main/cpp/prebuilt/**/*.a

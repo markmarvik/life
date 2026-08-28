@@ -35,23 +35,48 @@ scores, groups, widgets, wearables, Deep Work, Path, or LAN web.
 - Finance: + income / − expense, learned payees/categories/amounts, live
   balance. Amounts in minor units.
 
+## Capture (Android) — Needle first
+
+The bottom composer is the main input. Typed text and STT both go through
+`NeedleEngine.interpret` → `NeedleDispatcher`. Do not reintroduce a parallel
+parser as the primary dispatcher.
+
+- Tools (keep 3–5, ~256-token window): `log_habit`, `add_note`,
+  `log_finance`, `complete_want`, `query_balance`. `miss_want` is deferred
+  (needs the 10-word reflection sheet).
+- Confidence ≥ 0.75 and required args present → write immediately.
+  Below that → preview chips. Empty Needle `function_calls` → note of the
+  raw text. `query_balance` never mutates.
+- Native engine: JNI to Needle 2 (`liblife_needle.so` ← `libneedle.a`,
+  arm64, `--whole-archive`). Global C API, one mutex. Fetch the `.a` with
+  `./scripts/fetch-needle.sh`; do not commit it.
+- If the `.so` is missing (unit tests, x86, first build): `NeedleFallback`
+  emits the same tool names.
+- Voice: hold mic, release to commit. `SpeechRecognizer` with
+  `EXTRA_PREFER_OFFLINE` / on-device recognizer when present. STT is a feed
+  into Needle, not a cloud LLM. sherpa-onnx Whisper is later.
+- Habit / Note / Money chips keep the old sheets. Empty send opens the type
+  picker.
+
 ## Stack
 
 Kotlin 2.0, Jetpack Compose Material3, minSdk 26, compileSdk 35,
-`applicationId com.life.app`.
+`applicationId com.life.app`. NDK 27 + CMake 3.22 for Needle (optional).
 
 iPhone: SwiftUI, iOS 17, bundle id `com.life.app`, sources in `ios/`.
 Same product rules. JSON backups are interchangeable. Build only on a Mac
 with Xcode 15+ (`./ios/build.sh`). Install steps: `ios/INSTALL.md`.
+Needle is Android-only until we say otherwise.
 
 Repo: https://github.com/markmarvik/life (`main`).
 
 ## Commands
 
 ```bash
-./build.sh              # clean assembleDebug
+./build.sh              # fetch Needle + clean assembleDebug
 ./build.sh test
 ./build.sh assembleDebug
+LIFE_SKIP_NEEDLE=1 ./build.sh   # keyword fallback only
 ```
 
 Debug APK: `app/build/outputs/apk/debug/app-debug.apk`

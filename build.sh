@@ -103,7 +103,35 @@ if [[ $# -eq 0 ]]; then
   set -- clean assembleDebug
 fi
 
-info "JAVA_HOME=$JAVA_HOME"
-info "Running: ./gradlew $*"
+# Needle native lib is only needed for APKs. Unit tests use the keyword fallback.
+want_native=1
+for arg in "$@"; do
+  case "$arg" in
+    test|testDebugUnitTest|*UnitTest) want_native=0 ;;
+  esac
+done
+# Mixed `test assembleDebug` still wants the .so in the APK.
+for arg in "$@"; do
+  case "$arg" in
+    assemble*|install*|bundle*) want_native=1 ;;
+  esac
+done
 
-exec ./gradlew "$@"
+if [[ "$want_native" == "1" && "${LIFE_SKIP_NEEDLE:-}" != "1" ]]; then
+  if ! bash "$SCRIPT_DIR/scripts/fetch-needle.sh"; then
+    warn "Needle native lib missing — APK will use keyword fallback"
+  fi
+fi
+
+native_prop=false
+if [[ "$want_native" == "1" && -f app/src/main/cpp/prebuilt/arm64-v8a/libneedle.a ]]; then
+  native_prop=true
+  info "Needle native: on (arm64-v8a)"
+else
+  info "Needle native: off (keyword fallback)"
+fi
+
+info "JAVA_HOME=$JAVA_HOME"
+info "Running: ./gradlew $* -Plife.needle.native=$native_prop"
+
+exec ./gradlew "$@" "-Plife.needle.native=$native_prop"

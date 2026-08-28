@@ -1,6 +1,7 @@
 package com.life.app.ui
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,22 +19,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,8 +55,15 @@ import com.life.app.data.availableTags
 import com.life.app.data.balanceMinor
 import com.life.app.data.WantDomain
 import com.life.app.data.groupEvents
+import com.life.app.needle.NeedleDraft
+import com.life.app.needle.NeedleEngine
+import com.life.app.needle.NeedleKind
 import com.life.app.util.rememberHaptics
 import java.time.LocalDate
+import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class TimelineFilter { ALL, HABIT, NOTE, FINANCE }
 
@@ -83,15 +90,43 @@ fun TimelineScreen(
 ) {
     val haptics = rememberHaptics()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var filter by remember { mutableStateOf(TimelineFilter.ALL) }
     var capture by remember { mutableStateOf<CaptureUi>(CaptureUi.Hidden) }
     var habitQuery by remember { mutableStateOf("") }
+    var composerText by remember { mutableStateOf("") }
+    var pending by remember { mutableStateOf<List<NeedleDraft>>(emptyList()) }
+    var listening by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    var status by remember { mutableStateOf<String?>(null) }
     var showCorrupt by remember { mutableStateOf(DataLoadDiagnostics.shouldShowBanner()) }
     val today = remember { LocalDate.now() }
     val upcoming = remember(data.events) { WantDomain.upcoming(data, today) }
     val notifPerm = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { }
+    val micPerm = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        status = if (granted) null else "Mic permission denied"
+    }
+    val engineReady = remember { NeedleEngine.nativeAvailable }
+    val sendRef = remember { mutableStateOf<(String) -> Unit>({}) }
+    val voice = remember {
+        VoiceCapture(
+            context = context,
+            onPartial = { composerText = it },
+            onFinal = { spoken ->
+                composerText = spoken
+                sendRef.value(spoken)
+            },
+            onState = { listening = it },
+            onError = { status = it }
+        )
+    }
+    DisposableEffect(voice) {
+        onDispose { voice.destroy() }
+    }
 
     val filtered = remember(data.events, filter) {
         when (filter) {
@@ -106,20 +141,100 @@ fun TimelineScreen(
         HabitRanker.suggest(data, System.currentTimeMillis(), habitQuery)
     }
 
+    fun sendComposer(source: String = composerText) {
+        val typed = source.trim()
+        if (typed.isEmpty()) {
+            if (pending.isNotEmpty()) {
+                haptics.success()
+                vm.applyDrafts(pending)
+                pending = emptyList()
+            } else {
+                capture = CaptureUi.PickType
+            }
+            return
+        }
+        busy = true
+        status = null
+        val snapshot = data
+        scope.launch {
+            val drafts = withContext(Dispatchers.Default) {
+                NeedleEngine.interpret(typed, snapshot)
+            }
+            val balances = drafts.filter { it.kind == NeedleKind.BALANCE }
+            val auto = drafts.filter { !it.needsConfirm && it.kind != NeedleKind.BALANCE }
+            val mid = drafts.filter { it.needsConfirm }
+            if (auto.isNotEmpty()) {
+                haptics.success()
+                vm.applyDrafts(auto)
+                if (auto.any { it.isWant }) maybeAskNotifications(context, notifPerm)
+            }
+            pending = pending + mid
+            if (balances.isNotEmpty()) {
+                status = "Balance ${balances.last().label}"
+            }
+            composerText = ""
+            busy = false
+            if (mid.isNotEmpty()) haptics.tick()
+        }
+    }
+    sendRef.value = { sendComposer(it) }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    haptics.tick()
-                    capture = CaptureUi.PickType
+        bottomBar = {
+            CaptureComposer(
+                text = composerText,
+                onTextChange = { composerText = it },
+                pending = pending,
+                listening = listening,
+                busy = busy,
+                engineReady = engineReady,
+                status = status,
+                onSend = { sendComposer() },
+                onConfirmDraft = { draft ->
+                    haptics.success()
+                    if (draft.kind == NeedleKind.BALANCE) {
+                        status = "Balance ${draft.label}"
+                    } else {
+                        vm.applyDrafts(listOf(draft))
+                        if (draft.isWant) maybeAskNotifications(context, notifPerm)
+                    }
+                    pending = pending.filterNot { it === draft }
                 },
-                shape = CircleShape,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
-            }
+                onDismissDraft = { draft ->
+                    pending = pending.filterNot { it === draft }
+                },
+                onConfirmAll = {
+                    if (pending.isNotEmpty()) {
+                        haptics.success()
+                        vm.applyDrafts(pending)
+                        pending = emptyList()
+                    }
+                },
+                onPickType = {
+                    haptics.tick()
+                    habitQuery = ""
+                    capture = when (it) {
+                        CaptureKind.HABIT -> CaptureUi.Habit
+                        CaptureKind.NOTE -> CaptureUi.Note()
+                        CaptureKind.FINANCE -> CaptureUi.Finance()
+                    }
+                },
+                onMicDown = {
+                    val granted = ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.RECORD_AUDIO
+                    ) == PackageManager.PERMISSION_GRANTED
+                    if (!granted) {
+                        micPerm.launch(Manifest.permission.RECORD_AUDIO)
+                        return@CaptureComposer
+                    }
+                    status = null
+                    haptics.tick()
+                    voice.start(Locale.getDefault())
+                },
+                onMicUp = { voice.stop() }
+            )
         }
     ) { padding ->
         Column(
@@ -202,7 +317,7 @@ fun TimelineScreen(
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            "Tap + to log your day.",
+                            "Type or hold the mic.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -210,7 +325,7 @@ fun TimelineScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 96.dp, top = 8.dp)
+                    contentPadding = PaddingValues(bottom = 24.dp, top = 8.dp)
                 ) {
                     groups.forEach { day ->
                         item(key = "h-${day.date}") {

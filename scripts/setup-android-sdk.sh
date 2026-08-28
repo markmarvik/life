@@ -51,7 +51,9 @@ echo "Installing required packages..."
   "platform-tools" \
   "platforms;android-35" \
   "build-tools;34.0.0" \
-  "build-tools;35.0.0"
+  "build-tools;35.0.0" \
+  "ndk;27.0.12077973" \
+  "cmake;3.22.1"
 
 echo
 echo "Writing local.properties in the project..."

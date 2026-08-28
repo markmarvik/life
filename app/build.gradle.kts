@@ -5,6 +5,11 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+val needleA = file("src/main/cpp/prebuilt/arm64-v8a/libneedle.a")
+val needleNative = (findProperty("life.needle.native") as? String)
+    ?.toBooleanStrictOrNull()
+    ?: needleA.exists()
+
 android {
     namespace = "com.life.app"
     compileSdk = 35
@@ -50,6 +55,30 @@ android {
     testOptions {
         unitTests.all {
             it.useJUnitPlatform()
+        }
+    }
+
+    // Native Needle 2 is optional: unit tests and first assemble still work
+    // without NDK / libneedle.a (keyword fallback). ./build.sh fetches the
+    // arm64 archive and passes -Plife.needle.native=true.
+    if (needleNative) {
+        ndkVersion = "27.0.12077973"
+        defaultConfig {
+            ndk {
+                abiFilters += "arm64-v8a"
+            }
+            externalNativeBuild {
+                cmake {
+                    arguments += "-DANDROID_STL=c++_shared"
+                    abiFilters += "arm64-v8a"
+                }
+            }
+        }
+        externalNativeBuild {
+            cmake {
+                path = file("src/main/cpp/CMakeLists.txt")
+                version = "3.22.1"
+            }
         }
     }
 }

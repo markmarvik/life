@@ -26,6 +26,9 @@ import com.life.app.data.withHabit
 import com.life.app.data.withPayee
 import com.life.app.data.withTag
 import com.life.app.data.withoutEvent
+import com.life.app.needle.NeedleDispatcher
+import com.life.app.needle.NeedleDraft
+import com.life.app.needle.NeedleKind
 import com.life.app.reminders.WantScheduler
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
@@ -61,6 +64,12 @@ class LifeViewModel(
                 )
             )
         }
+    }
+
+    fun applyDrafts(drafts: List<NeedleDraft>) {
+        val writable = drafts.filter { it.kind != NeedleKind.BALANCE }
+        if (writable.isEmpty()) return
+        mutate { NeedleDispatcher.applyAll(it, writable) }
     }
 
     fun editHabit(habitId: String, name: String, icon: String, why: String = "") {
