@@ -174,6 +174,54 @@
 			fileRef = 16E8A2ABF557C979E13E7EF5 /* CaptureTypeSheet.swift */;
 		}
 
+		7E8F91A0B1C2D3E4F5061728 /* */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = PatternNeedle.swift;
+			sourceTree = "<group>";
+		}
+
+		8F90A1B2C3D4E5F60718293A /* */ = {
+			isa = PBXBuildFile;
+			fileRef = 7E8F91A0B1C2D3E4F5061728 /* PatternNeedle.swift */;
+		}
+
+		9A01B2C3D4E5F60718293A4B /* */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = OnDeviceSpeech.swift;
+			sourceTree = "<group>";
+		}
+
+		AB12C3D4E5F60718293A4B5C /* */ = {
+			isa = PBXBuildFile;
+			fileRef = 9A01B2C3D4E5F60718293A4B /* OnDeviceSpeech.swift */;
+		}
+
+		BC23D4E5F60718293A4B5C6D /* */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = CaptureComposer.swift;
+			sourceTree = "<group>";
+		}
+
+		CD34E5F60718293A4B5C6D7E /* */ = {
+			isa = PBXBuildFile;
+			fileRef = BC23D4E5F60718293A4B5C6D /* CaptureComposer.swift */;
+		}
+
+		EF560718293A4B5C6D7E8F90 /* */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift;
+			path = PatternNeedleTests.swift;
+			sourceTree = "<group>";
+		}
+
+		F06718293A4B5C6D7E8F901A /* */ = {
+			isa = PBXBuildFile;
+			fileRef = EF560718293A4B5C6D7E8F90 /* PatternNeedleTests.swift */;
+		}
+
 		EDABD984776E495482AC1E8D /* */ = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.swift;
@@ -439,6 +487,7 @@
 		95032B026F697DC5402A2D1D /* */ = {
 			isa = PBXGroup;
 			children = (
+				BC23D4E5F60718293A4B5C6D /* CaptureComposer.swift */,
 				16E8A2ABF557C979E13E7EF5 /* CaptureTypeSheet.swift */,
 				EDABD984776E495482AC1E8D /* Chips.swift */,
 				9E5F8C2F8A4A22F509E22E87 /* EventRow.swift */,
@@ -465,6 +514,16 @@
 			sourceTree = "<group>";
 		}
 
+		DE45F60718293A4B5C6D7E8F /* */ = {
+			isa = PBXGroup;
+			children = (
+				7E8F91A0B1C2D3E4F5061728 /* PatternNeedle.swift */,
+				9A01B2C3D4E5F60718293A4B /* OnDeviceSpeech.swift */,
+			);
+			path = Needle;
+			sourceTree = "<group>";
+		}
+
 		77CD6D9319F60C0083FBFECA /* */ = {
 			isa = PBXGroup;
 			children = (
@@ -472,6 +531,7 @@
 				734F24F1FC43DF93F9154C4B /* PrivacyInfo.xcprivacy */,
 				58F02208A1E6A99468703A4E /* Assets.xcassets */,
 				F956A58BC4D8B69029FB45C6 /* Data */,
+				DE45F60718293A4B5C6D7E8F /* Needle */,
 				95032B026F697DC5402A2D1D /* UI */,
 				0AF311DB9243780D902D45AC /* Reminders */,
 			);
@@ -488,6 +548,7 @@
 				1E3CB2AB8B78EB71988D16B8 /* HabitRankerTests.swift */,
 				0D300152568BFB4CB20A6A89 /* ModelsTests.swift */,
 				1B5F5E5B90CCA457E88629DC /* MoneyTests.swift */,
+				EF560718293A4B5C6D7E8F90 /* PatternNeedleTests.swift */,
 				68B1FF20A61EF9D4C8A73312 /* WantDomainTests.swift */,
 			);
 			path = LifeTests;
@@ -530,7 +591,10 @@
 				CFC86A8819B8ECA3AEE5494F /* WantDomain.swift in Sources */,
 				AE7170AED0A9ABB62A054BED /* LifeApp.swift in Sources */,
 				DAC8218C43D0C462A2D991EB /* WantScheduler.swift in Sources */,
+				8F90A1B2C3D4E5F60718293A /* PatternNeedle.swift in Sources */,
+				AB12C3D4E5F60718293A4B5C /* OnDeviceSpeech.swift in Sources */,
 				B7BECCABD676F996E76362A2 /* CaptureTypeSheet.swift in Sources */,
+				CD34E5F60718293A4B5C6D7E /* CaptureComposer.swift in Sources */,
 				6B59D6A5761F80CBE4A50857 /* Chips.swift in Sources */,
 				22991EB35A75F14966633143 /* EventRow.swift in Sources */,
 				9433350112DCAD2C29B9BA0C /* FinanceSheet.swift in Sources */,
@@ -574,6 +638,7 @@
 				AB91FEDEFEDE74E85F96B87B /* HabitRankerTests.swift in Sources */,
 				A8F4BF7EB425A135296DBB89 /* ModelsTests.swift in Sources */,
 				D133BFDB8AD3BBCBA47823FC /* MoneyTests.swift in Sources */,
+				F06718293A4B5C6D7E8F901A /* PatternNeedleTests.swift in Sources */,
 				8718B6F34E2578140B1110BD /* WantDomainTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -790,6 +855,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Life;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Life records a short clip on this phone so you can log what just happened.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Life turns speech into text on this phone. Nothing is sent to a server.";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -823,6 +890,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Life;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Life records a short clip on this phone so you can log what just happened.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Life turns speech into text on this phone. Nothing is sent to a server.";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

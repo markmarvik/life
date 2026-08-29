@@ -75,6 +75,11 @@ struct SettingsView: View {
                         }
                     }
 
+                    section("On-device AI").padding(.top, 16)
+                    Text("Speak or type to log. Pattern matching always works offline, no model pack. Hold the mic for on-device speech (English or Serbian if the language pack is on the phone). Forms stay as a fallback.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(palette.onSurfaceVariant)
+
                     section("Reminders").padding(.top, 16)
                     Text("Day before at 20:00 and morning-of at 08:00 for Wants.")
                         .font(.system(size: 13))

@@ -11,11 +11,14 @@ This is a fresh app. It is not a fork of [Steady](https://github.com/markmarvik/
 
 1. Open the timeline.
 2. Tap **+**.
-3. Pick **Habit**, **Note**, or **Finance**.
+3. Type or hold the mic: `popio kreatin`, `spent 450 lidl`, `want call dentist tomorrow`.
+4. **Use a form** if you want the old Habit / Note / Finance sheets.
 
 - **Habit** — tap a suggestion, fuzzy-search what you already log, or type a new name. One tap writes it on the timeline *now*. Hold any habit — including the premade list — to edit it. **Save changes** updates that habit (and keeps its gray subtitle in Log a habit); **Save as new** creates a separate one. No due list, no skip, no schedule.
 - **Note** — one field for the thought, tags to find it later. Add **Want** plus a date chip (Today / Tomorrow / pick a day) to make it a commitment: it sits in **Upcoming** above the timeline, reminds the evening before and the morning of, and **Didn’t** requires a written reason (10 words, more if you keep skipping). **Done** is one tap.
 - **Finance** — **+** income / **−** expense, amount, payee, category. Header shows current balance. Suggestions learn from what you actually log.
+
+Typed capture is fully offline. Voice: Android can install Needle + Whisper once (Settings → On-device AI), then airplane-mode; iPhone uses on-device Speech. Pattern matching still logs if the voice pack is missing.
 
 Filter chips: All · Habit · Note · Finance. Gear: opening balance, currency, theme, JSON backup.
 
@@ -56,13 +59,18 @@ schema as Android.
 ```
 app/src/main/java/com/life/app/
   data/     models, DataStore repo, fuzzy search, habit/finance rankers, wants
-  ui/       timeline + capture sheets + settings
+  needle/   PatternNeedle (always) + optional Cactus Needle
+  stt/      16 kHz PCM16 mic
+  ui/       timeline + composer + capture sheets + settings
   util/     haptics
 
 ios/Life/
   Data/     same domain, JSON on disk
-  UI/       SwiftUI timeline + sheets
+  Needle/   PatternNeedle + Apple on-device speech
+  UI/       SwiftUI timeline + composer + sheets
   Reminders/ Want notifications
+
+tools/needle/  shared tool schema + desktop eval (not on phones)
 ```
 
 Agent notes for this repo: `AGENTS.md`.

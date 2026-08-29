@@ -16,6 +16,7 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.life.app.data.ThemeOptions
+import com.life.app.needle.CaptureRuntime
 import com.life.app.ui.LifeViewModel
 import com.life.app.ui.SettingsScreen
 import com.life.app.ui.TimelineScreen
@@ -24,6 +25,7 @@ import com.life.app.ui.theme.LifeTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        CaptureRuntime.initContext(this)
         enableEdgeToEdge()
         setContent {
             val vm: LifeViewModel = viewModel(factory = LifeViewModel.factory(applicationContext))

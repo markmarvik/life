@@ -16,6 +16,7 @@ enum TimelineFilter: String, CaseIterable, Identifiable {
 enum CaptureKind { case habit, note, finance }
 
 enum CaptureUi: Identifiable, Equatable {
+    case composer
     case pickType
     case habit
     case note(LifeEvent?)
@@ -26,6 +27,7 @@ enum CaptureUi: Identifiable, Equatable {
 
     var id: String {
         switch self {
+        case .composer: return "composer"
         case .pickType: return "pick"
         case .habit: return "habit"
         case .note(let e): return "note-\(e?.id ?? "new")"
@@ -91,7 +93,7 @@ struct TimelineView: View {
                             Text(filter == .all ? "Nothing yet." : "Nothing in this filter.")
                                 .font(.system(size: 18, weight: .medium))
                                 .foregroundStyle(palette.onSurface)
-                            Text("Tap + to log your day.")
+                            Text("Speak or type with +.")
                                 .foregroundStyle(palette.onSurfaceVariant)
                         }
                         .frame(maxWidth: .infinity)
@@ -132,7 +134,7 @@ struct TimelineView: View {
                 }
                 Button {
                     LifeHaptics.tick()
-                    capture = .pickType
+                    capture = .composer
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 22, weight: .semibold))
@@ -197,6 +199,15 @@ struct TimelineView: View {
     @ViewBuilder
     private func captureSheet(_ item: CaptureUi, suggestions: [HabitSuggestion]) -> some View {
         switch item {
+        case .composer:
+            CaptureComposer(
+                onUseForm: {
+                    LifeHaptics.tick()
+                    capture = .pickType
+                },
+                onNeedReflection: { capture = .reflect($0) },
+                onDismiss: { capture = nil }
+            )
         case .pickType:
             CaptureTypeSheet { kind in
                 LifeHaptics.tick()

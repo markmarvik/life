@@ -62,6 +62,7 @@ enum class TimelineFilter { ALL, HABIT, NOTE, FINANCE }
 
 sealed interface CaptureUi {
     data object Hidden : CaptureUi
+    data object Composer : CaptureUi
     data object PickType : CaptureUi
     data object Habit : CaptureUi
     data class Note(val editing: LifeEvent? = null) : CaptureUi
@@ -112,7 +113,7 @@ fun TimelineScreen(
             FloatingActionButton(
                 onClick = {
                     haptics.tick()
-                    capture = CaptureUi.PickType
+                    capture = CaptureUi.Composer
                 },
                 shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -202,7 +203,7 @@ fun TimelineScreen(
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            "Tap + to log your day.",
+                            "Speak or type with +.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -257,6 +258,13 @@ fun TimelineScreen(
 
     when (val c = capture) {
         CaptureUi.Hidden -> Unit
+        CaptureUi.Composer -> CaptureComposer(
+            data = data,
+            vm = vm,
+            onUseForm = { capture = CaptureUi.PickType },
+            onDismiss = { capture = CaptureUi.Hidden },
+            onNeedReflection = { capture = CaptureUi.Reflect(it) }
+        )
         CaptureUi.PickType -> CaptureTypeSheet(
             onPick = {
                 haptics.tick()

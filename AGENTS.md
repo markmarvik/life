@@ -34,10 +34,16 @@ scores, groups, widgets, wearables, Deep Work, Path, or LAN web.
 - Reminders: day before 20:00 and morning-of 08:00 (AlarmManager).
 - Finance: + income / − expense, learned payees/categories/amounts, live
   balance. Amounts in minor units.
+- Capture: **+** opens a composer (one field + hold-to-talk), not the old
+  three-card picker. `PatternNeedle` always dispatches offline (EN + SR).
+  Android can *optionally* install Cactus Needle + Whisper once from
+  Settings, then airplane-mode. iPhone uses Apple on-device speech.
+  “Use a form” keeps the Habit / Note / Finance sheets. Do not make the
+  composer require a network call.
 
 ## Stack
 
-Kotlin 2.0, Jetpack Compose Material3, minSdk 26, compileSdk 35,
+Kotlin 2.2, Jetpack Compose Material3, minSdk 26, compileSdk 35,
 `applicationId com.life.app`.
 
 iPhone: SwiftUI, iOS 17, bundle id `com.life.app`, sources in `ios/`.
@@ -52,6 +58,7 @@ Repo: https://github.com/markmarvik/life (`main`).
 ./build.sh              # clean assembleDebug
 ./build.sh test
 ./build.sh assembleDebug
+python3 tools/needle/try_dispatch.py --test   # desktop PatternNeedle eval
 ```
 
 Debug APK: `app/build/outputs/apk/debug/app-debug.apk`

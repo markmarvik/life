@@ -25,7 +25,8 @@ This Linux workspace cannot produce an IPA. Copy the repo to a Mac.
 ```
 ios/Life/
   Data/        models, JSON store, fuzzy search, rankers, wants
-  UI/          timeline + capture sheets + settings
+  Needle/      PatternNeedle + on-device speech (fully offline typed path)
+  UI/          timeline + composer + capture sheets + settings
   Reminders/   Want notifications (20:00 day before, 08:00 morning of)
-ios/LifeTests/ same rule tests as Android (catalog edit, wants, money)
+ios/LifeTests/ same rule tests as Android (catalog edit, wants, money, needle)
 ```

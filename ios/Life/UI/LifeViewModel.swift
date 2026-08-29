@@ -31,6 +31,22 @@ final class LifeViewModel: ObservableObject {
         }
     }
 
+    func logHabitNamed(_ name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return }
+        let suggestions = HabitRanker.suggest(data, nowMs: nowMs(), query: trimmed)
+        if let known = suggestions.first(where: { !$0.isCreate && Fuzzy.score(trimmed, $0.name) >= 0.62 }) {
+            logHabit(known)
+            return
+        }
+        if var create = suggestions.first(where: { $0.isCreate }) {
+            create.name = trimmed
+            logHabit(create)
+            return
+        }
+        logHabit(HabitSuggestion(name: trimmed, icon: "•", habitId: nil, score: 0, isCreate: true))
+    }
+
     func editHabit(habitId: String, name: String, icon: String, why: String = "") {
         mutate { HabitDomain.edit($0, habitId: habitId, name: name, icon: icon, why: why) }
     }

@@ -39,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,10 +50,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.life.app.data.AppData
 import com.life.app.data.Money
 import com.life.app.data.ThemeOptions
+import com.life.app.needle.CaptureRuntime
 import java.time.LocalDate
+import kotlinx.coroutines.launch
 
 private val COMMON_CURRENCIES = listOf("USD", "EUR", "GBP", "NOK", "SEK", "DKK", "JPY", "CAD", "AUD")
 
@@ -64,6 +68,10 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val packStatus by CaptureRuntime.status.collectAsStateWithLifecycle()
+    val needleReady by CaptureRuntime.needleReady.collectAsStateWithLifecycle()
+    val sttReady by CaptureRuntime.sttReady.collectAsStateWithLifecycle()
     var openingText by remember(data.openingBalanceMinor, data.currencyCode) {
         mutableStateOf(Money.formatMajorPlain(data.openingBalanceMinor, data.currencyCode))
     }
@@ -177,6 +185,29 @@ fun SettingsScreen(
             }
 
             Spacer(Modifier.height(24.dp))
+            Section("On-device AI")
+            Text(
+                "Speak or type to log. Pattern matching always works offline. " +
+                    "Needle + Whisper is a one-time install, then airplane-mode.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 13.sp
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(packStatus, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    scope.launch {
+                        CaptureRuntime.ensureModels(context, install = true)
+                        status = if (CaptureRuntime.needleReady.value) "Voice pack ready" else "Install failed — typed capture still works"
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (needleReady && sttReady) "Re-check voice pack" else "Install Needle + Whisper")
+            }
+
+            Spacer(Modifier.height(24.dp))
             Section("Reminders")
             Text(
                 "Day before at 20:00 and morning-of at 08:00 for Wants.",
@@ -216,7 +247,7 @@ fun SettingsScreen(
             Spacer(Modifier.height(24.dp))
             Section("About")
             Text(
-                "Life is local-only. No account, no cloud, no ads. Habits, notes, and money on one timeline.",
+                "Life is local-only. No account, no cloud, no ads. Habits, notes, and money on one timeline. Voice never leaves the phone.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp
             )

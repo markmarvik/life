@@ -1,0 +1,61 @@
+{
+  "tools": [
+    {
+      "name": "log_habit",
+      "description": "Log a habit the user just did. Name is the habit, in the user's words (EN or SR).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "description": "Habit name, e.g. creatine, Brush + floss, kreatin" }
+        },
+        "required": ["name"]
+      }
+    },
+    {
+      "name": "add_note",
+      "description": "Save a note. If it is a commitment, set want_date (yyyy-MM-dd or today/tomorrow).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "body": { "type": "string" },
+          "tags": { "type": "string", "description": "Optional comma-separated tags" },
+          "want_date": { "type": "string", "description": "yyyy-MM-dd, today, tomorrow, danas, sutra" }
+        },
+        "required": ["body"]
+      }
+    },
+    {
+      "name": "log_finance",
+      "description": "Log money. sign is in (income) or out (expense).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "sign": { "type": "string", "enum": ["in", "out"] },
+          "amount": { "type": "string", "description": "Numeric amount as spoken, no currency symbol required" },
+          "payee": { "type": "string" },
+          "category": { "type": "string" }
+        },
+        "required": ["sign", "amount"]
+      }
+    },
+    {
+      "name": "complete_want",
+      "description": "Mark an upcoming Want as done. text matches the want body.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" }
+        },
+        "required": ["text"]
+      }
+    },
+    {
+      "name": "query_balance",
+      "description": "Read the current money balance. No arguments.",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}

@@ -11,6 +11,8 @@ import com.life.app.data.EventKind
 import com.life.app.data.HabitCatalog
 import com.life.app.data.HabitDef
 import com.life.app.data.HabitDomain
+import com.life.app.data.Fuzzy
+import com.life.app.data.HabitRanker
 import com.life.app.data.HabitSuggestion
 import com.life.app.data.LifeEvent
 import com.life.app.data.LifeRepository
@@ -61,6 +63,19 @@ class LifeViewModel(
                 )
             )
         }
+    }
+
+    fun logHabitNamed(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        val now = System.currentTimeMillis()
+        val suggestions = HabitRanker.suggest(appData.value, now, trimmed)
+        val known = suggestions.firstOrNull { !it.isCreate && Fuzzy.score(trimmed, it.name) >= 0.62 }
+        val create = suggestions.firstOrNull { it.isCreate }
+        logHabit(
+            known ?: create?.copy(name = trimmed)
+                ?: HabitSuggestion(name = trimmed, icon = "•", habitId = null, score = 0.0, isCreate = true)
+        )
     }
 
     fun editHabit(habitId: String, name: String, icon: String, why: String = "") {
