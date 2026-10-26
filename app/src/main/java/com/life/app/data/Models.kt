@@ -66,7 +66,7 @@ data class AppData(
     val openingBalanceMinor: Long = 0L,
     val currencyCode: String = "USD",
     val colorScheme: String = "default",
-    val backgroundMode: String = "dark",
+    val backgroundMode: String = "system",
     val wantStrikeStreak: Int = 0,
     val wantRemindersEnabled: Boolean = true
 ) {

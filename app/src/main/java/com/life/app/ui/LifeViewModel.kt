@@ -1,6 +1,7 @@
 package com.life.app.ui
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -10,7 +11,9 @@ import com.life.app.data.AppData
 import com.life.app.data.EventKind
 import com.life.app.data.HabitCatalog
 import com.life.app.data.HabitDef
+import com.life.app.data.ExportFiles
 import com.life.app.data.HabitDomain
+import com.life.app.data.HabitStreaks
 import com.life.app.data.Fuzzy
 import com.life.app.data.HabitRanker
 import com.life.app.data.HabitSuggestion
@@ -63,6 +66,11 @@ class LifeViewModel(
                 )
             )
         }
+    }
+
+    fun toggleHabitToday(habitId: String) {
+        val now = System.currentTimeMillis()
+        mutate { HabitStreaks.toggleToday(it, habitId, now) }
     }
 
     fun logHabitNamed(name: String) {
@@ -214,6 +222,23 @@ class LifeViewModel(
                     out.write(payload.toByteArray(Charsets.UTF_8))
                 }
             }
+        }
+    }
+
+    fun sharePlainExport(context: Context, onDone: (Result<Unit>) -> Unit = {}) {
+        viewModelScope.launch {
+            val result = runCatching {
+                val snapshot = mutex.withLock { appData.value }
+                val file = withContext(Dispatchers.IO) {
+                    ExportFiles.write(context.applicationContext, snapshot)
+                }
+                val send = ExportFiles.shareIntent(context, file)
+                val chooser = Intent.createChooser(send, "Share life export").apply {
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(chooser)
+            }
+            onDone(result)
         }
     }
 

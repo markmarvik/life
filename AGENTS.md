@@ -10,6 +10,8 @@ scores, groups, widgets, wearables, Deep Work, Path, or LAN web.
 ## Product rules
 
 - Habits are log-when-you-do-it. No schedule, skip, or due list.
+- The main screen lists habits. Tap one to mark today done; tap again undoes today. Current and best streaks count consecutive calendar days with a log. If today is still empty, the current run is counted from yesterday so it stays open until the day ends. That is not a score.
+- **Share export** writes `life-export.json` and `life-export.md` in the external files dir and shares the JSON. Format: `docs/EXPORT.md`. This is not the full backup.
 - Long-press a habit (picker or timeline row), including premade catalog
   rows, to edit name / icon / gray subtitle.
   - **Save changes** updates or *claims* that slot. Catalog items keep their

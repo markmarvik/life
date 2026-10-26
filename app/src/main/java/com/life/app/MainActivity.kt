@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.SideEffect
@@ -30,11 +31,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             val vm: LifeViewModel = viewModel(factory = LifeViewModel.factory(applicationContext))
             val data by vm.appData.collectAsStateWithLifecycle()
-            val bg = ThemeOptions.background(data.backgroundMode)
+            val systemDark = isSystemInDarkTheme()
+            val lightBars = ThemeOptions.usesLightBars(data.backgroundMode, systemDark)
             SideEffect {
                 val insets = WindowCompat.getInsetsController(window, window.decorView)
-                insets.isAppearanceLightStatusBars = bg.isLight
-                insets.isAppearanceLightNavigationBars = bg.isLight
+                insets.isAppearanceLightStatusBars = lightBars
+                insets.isAppearanceLightNavigationBars = lightBars
             }
 
             var settings by remember { mutableStateOf(false) }
