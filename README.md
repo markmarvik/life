@@ -5,7 +5,7 @@ and a sibling native iPhone app in `ios/`.
 
 Local-first: no accounts, no ads, no cloud. Log what happened with one `+` button.
 
-This is a fresh app. It is not a fork of [Steady](https://github.com/markmarvik/steady). Steady’s planner, streaks, wearables, and scoring stayed behind on purpose.
+This is a fresh app. It is not a fork of [Steady](https://github.com/markmarvik/steady). Planner, skip, groups, widgets, wearables, and scoring stayed behind. Life keeps a one-tap today row and a plain current/best streak.
 
 ## What you do in Life
 
@@ -14,13 +14,13 @@ This is a fresh app. It is not a fork of [Steady](https://github.com/markmarvik/
 3. Type or hold the mic: `popio kreatin`, `spent 450 lidl`, `want call dentist tomorrow`.
 4. **Use a form** if you want the old Habit / Note / Finance sheets.
 
-- **Habit** — tap a suggestion, fuzzy-search what you already log, or type a new name. One tap writes it on the timeline *now*. Hold any habit — including the premade list — to edit it. **Save changes** updates that habit (and keeps its gray subtitle in Log a habit); **Save as new** creates a separate one. No due list, no skip, no schedule.
+- **Habit** — on the main screen, tap a habit to mark today done (tap again undoes today). The card shows the current streak, the best streak, and the last seven days. Hold a habit — including the premade list — to edit it. **Save changes** updates that habit (and keeps its gray subtitle in Log a habit); **Save as new** creates a separate one. The **+** composer still logs by name. No due list, no skip, no schedule.
 - **Note** — one field for the thought, tags to find it later. Add **Want** plus a date chip (Today / Tomorrow / pick a day) to make it a commitment: it sits in **Upcoming** above the timeline, reminds the evening before and the morning of, and **Didn’t** requires a written reason (10 words, more if you keep skipping). **Done** is one tap.
 - **Finance** — **+** income / **−** expense, amount, payee, category. Header shows current balance. Suggestions learn from what you actually log.
 
 Typed capture is fully offline. Voice: Android can install Needle + Whisper once (Settings → On-device AI), then airplane-mode; iPhone uses on-device Speech. Pattern matching still logs if the voice pack is missing.
 
-Filter chips: All · Habit · Note · Finance. Gear: opening balance, currency, theme, JSON backup.
+Filter chips: All · Habit · Note · Finance. Gear: opening balance, currency, theme (System uses wallpaper color on Android 12+), full JSON backup, and **Share export** (`life-export.json` plus `life-export.md` — see [docs/EXPORT.md](docs/EXPORT.md)).
 
 ## Build (CLI)
 

@@ -42,13 +42,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.content.ContextCompat
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.life.app.data.AppData
 import com.life.app.data.DataLoadDiagnostics
 import com.life.app.data.EventKind
 import com.life.app.data.HabitDef
 import com.life.app.data.HabitDomain
 import com.life.app.data.HabitRanker
+import com.life.app.data.HabitStreaks
 import com.life.app.data.LifeEvent
 import com.life.app.data.Money
 import com.life.app.data.availableTags
@@ -57,6 +57,7 @@ import com.life.app.data.WantDomain
 import com.life.app.data.groupEvents
 import com.life.app.util.rememberHaptics
 import java.time.LocalDate
+import java.time.ZoneId
 
 enum class TimelineFilter { ALL, HABIT, NOTE, FINANCE }
 
@@ -106,6 +107,9 @@ fun TimelineScreen(
     val suggestions = remember(data, habitQuery) {
         HabitRanker.suggest(data, System.currentTimeMillis(), habitQuery)
     }
+    val todayHabits = remember(data.habits, data.events) {
+        HabitStreaks.todayRow(data, LocalDate.now(), ZoneId.systemDefault())
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -134,7 +138,12 @@ fun TimelineScreen(
                     .padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Life", fontWeight = FontWeight.Bold, fontSize = 28.sp, modifier = Modifier.weight(1f))
+                Text(
+                    "Life",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
                 BalancePill(Money.format(data.balanceMinor(), data.currencyCode)) {
                     haptics.tick()
                     capture = CaptureUi.Finance()
@@ -143,6 +152,20 @@ fun TimelineScreen(
                     Icon(Icons.Default.Settings, contentDescription = "Settings")
                 }
             }
+            TodayHabitRow(
+                habits = todayHabits,
+                onToggle = { habit ->
+                    haptics.success()
+                    vm.toggleHabitToday(habit.id)
+                },
+                onEdit = { habit ->
+                    val def = HabitDomain.defForEdit(data, habit.id)
+                    if (def != null) {
+                        haptics.tick()
+                        capture = CaptureUi.EditHabit(habit = def, returnToPicker = false)
+                    }
+                }
+            )
             UpcomingStrip(
                 items = upcoming,
                 today = today,
@@ -182,8 +205,8 @@ fun TimelineScreen(
             if (showCorrupt) {
                 Text(
                     "Could not read saved data. Showing empty until you restore a backup.",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
-                    fontSize = 13.sp,
                     modifier = Modifier
                         .padding(horizontal = 20.dp, vertical = 8.dp)
                         .clickable {
@@ -193,24 +216,24 @@ fun TimelineScreen(
                 )
             }
             if (groups.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             if (filter == TimelineFilter.ALL) "Nothing yet."
                             else "Nothing in this filter.",
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 18.sp
+                            style = MaterialTheme.typography.titleMedium
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            "Speak or type with +.",
+                            "Tap a habit, or speak with +.",
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxWidth().weight(1f),
                     contentPadding = PaddingValues(bottom = 96.dp, top = 8.dp)
                 ) {
                     groups.forEach { day ->
@@ -219,8 +242,7 @@ fun TimelineScreen(
                                 day.label,
                                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp
+                                style = MaterialTheme.typography.titleSmall
                             )
                         }
                         items(day.events, key = { it.id }) { event ->
@@ -407,7 +429,6 @@ private fun BalancePill(text: String, onClick: () -> Unit) {
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 6.dp),
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp
+        style = MaterialTheme.typography.labelLarge
     )
 }

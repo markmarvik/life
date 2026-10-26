@@ -155,7 +155,17 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
             Section("Look")
-            Text("Background", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            Text(
+                "System follows wallpaper colors on Android 12 and newer.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Background",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Spacer(Modifier.height(8.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ThemeOptions.backgrounds.forEach { bg ->
@@ -165,7 +175,11 @@ fun SettingsScreen(
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Text("Accent", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            Text(
+                "Accent",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Spacer(Modifier.height(8.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 ThemeOptions.accents.forEach { acc ->
@@ -229,11 +243,23 @@ fun SettingsScreen(
             Spacer(Modifier.height(24.dp))
             Section("Backup")
             Text(
-                "Everything stays on this phone. Export a JSON file you control.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 13.sp
+                "Everything stays on this phone. Share writes life-export.json and life-export.md, then sends the JSON. Export JSON is the full backup you can import.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(10.dp))
+            Button(
+                onClick = {
+                    vm.sharePlainExport(context) { result ->
+                        status = result.fold(
+                            { "Export written" },
+                            { "Export failed: ${it.message}" }
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Share export") }
+            Spacer(Modifier.height(8.dp))
             OutlinedButton(
                 onClick = { exportLauncher.launch("life-backup-${LocalDate.now()}.json") },
                 modifier = Modifier.fillMaxWidth()
@@ -263,8 +289,7 @@ fun SettingsScreen(
 private fun Section(title: String) {
     Text(
         title,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 18.sp,
+        style = MaterialTheme.typography.titleMedium,
         modifier = Modifier.padding(bottom = 8.dp)
     )
 }
