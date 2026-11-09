@@ -35,6 +35,10 @@ captures/
 # Kotlin compiler sessions
 .kotlin/
 
+# Zepp OS build output
+watch/node_modules/
+watch/dist/
+
 # Xcode / iOS
 xcuserdata/
 *.xcuserstate
