@@ -107,4 +107,12 @@ object HabitDomain {
         }
         return next
     }
+
+    fun ensureHabit(data: AppData, habitId: String, nowMs: Long): Pair<AppData, HabitDef>? {
+        data.habitById(habitId)?.let { return data to it }
+        val catalog = HabitCatalog.byId(habitId) ?: return null
+        data.findHabitByName(catalog.name)?.let { return data to it }
+        val created = catalog.toDef(createdAt = nowMs)
+        return data.withHabit(created) to created
+    }
 }
