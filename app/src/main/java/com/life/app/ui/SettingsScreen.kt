@@ -2,6 +2,13 @@ package com.life.app.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,15 +54,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.life.app.data.AppData
 import com.life.app.data.Money
 import com.life.app.data.ThemeOptions
 import com.life.app.needle.CaptureRuntime
+import com.life.app.watch.DigestScheduler
+import com.life.app.watch.GadgetbridgeClient
+import com.life.app.watch.WatchPreferences
+import com.life.app.watch.WatchSettings
+import com.life.app.watch.WatchSettingsStore
 import java.time.LocalDate
 import kotlinx.coroutines.launch
 
@@ -227,6 +242,9 @@ fun SettingsScreen(
             }
 
             Spacer(Modifier.height(24.dp))
+            WatchSection()
+
+            Spacer(Modifier.height(24.dp))
             Section("Backup")
             Text(
                 "Everything stays on this phone. Export a JSON file you control.",
@@ -256,6 +274,166 @@ fun SettingsScreen(
                 Text(it, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WatchSection() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var prefs by remember { mutableStateOf(WatchPreferences()) }
+    var packageText by remember { mutableStateOf(WatchSettings.DEFAULT_GB_PACKAGE) }
+    var morningText by remember { mutableStateOf("8") }
+    var eveningText by remember { mutableStateOf("20") }
+    var statusLabel by remember { mutableStateOf("Off") }
+    var debugText by remember { mutableStateOf("") }
+    var notice by remember { mutableStateOf<String?>(null) }
+    val notificationsOff = Build.VERSION.SDK_INT >= 33 &&
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+        PackageManager.PERMISSION_GRANTED
+
+    LaunchedEffect(Unit) {
+        val store = WatchSettingsStore(context.applicationContext)
+        val loaded = store.load()
+        prefs = loaded
+        packageText = loaded.gadgetbridgePackage
+        morningText = loaded.morningHour.toString()
+        eveningText = loaded.eveningHour.toString()
+        statusLabel = GadgetbridgeClient.statusLabel(context.applicationContext, loaded)
+        debugText = store.loadDebug()
+    }
+
+    fun hour(text: String, fallback: Int): Int = text.trim().toIntOrNull()?.coerceIn(0, 23) ?: fallback
+
+    fun edited(base: WatchPreferences): WatchPreferences = base.copy(
+        gadgetbridgePackage = packageText.trim().ifBlank { WatchSettings.DEFAULT_GB_PACKAGE },
+        morningHour = hour(morningText, base.morningHour),
+        eveningHour = hour(eveningText, base.eveningHour)
+    )
+
+    fun persist(next: WatchPreferences) {
+        scope.launch {
+            val app = context.applicationContext
+            val store = WatchSettingsStore(app)
+            val saved = next.copy(
+                morningHour = next.morningHour.coerceIn(0, 23),
+                eveningHour = next.eveningHour.coerceIn(0, 23),
+                gadgetbridgePackage = next.gadgetbridgePackage.trim().ifBlank { WatchSettings.DEFAULT_GB_PACKAGE }
+            )
+            store.save(saved)
+            prefs = saved
+            packageText = saved.gadgetbridgePackage
+            morningText = saved.morningHour.toString()
+            eveningText = saved.eveningHour.toString()
+            statusLabel = GadgetbridgeClient.registerListener(app, saved)
+            DigestScheduler.scheduleAll(app, saved)
+            debugText = store.loadDebug()
+            notice = "Saved"
+        }
+    }
+
+    Section("Watch")
+    Text(
+        "Listener talks to Gadgetbridge (Zepp test) until Nightly has the bridge.",
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontSize = 13.sp
+    )
+    Spacer(Modifier.height(8.dp))
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text("Watch listener", modifier = Modifier.weight(1f))
+        Switch(
+            checked = prefs.enabled,
+            onCheckedChange = { persist(edited(prefs).copy(enabled = it)) }
+        )
+    }
+    Spacer(Modifier.height(6.dp))
+    Text(statusLabel, fontWeight = FontWeight.Medium, fontSize = 13.sp)
+    Spacer(Modifier.height(8.dp))
+    OutlinedTextField(
+        value = packageText,
+        onValueChange = { packageText = it },
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text("Gadgetbridge package") },
+        singleLine = true
+    )
+    Spacer(Modifier.height(8.dp))
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text("Morning digest", modifier = Modifier.weight(1f))
+        Switch(
+            checked = prefs.morningDigestEnabled,
+            onCheckedChange = { persist(edited(prefs).copy(morningDigestEnabled = it)) }
+        )
+    }
+    OutlinedTextField(
+        value = morningText,
+        onValueChange = { morningText = it.filter { ch -> ch.isDigit() }.take(2) },
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text("Morning hour") },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+    )
+    Spacer(Modifier.height(8.dp))
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text("Evening digest", modifier = Modifier.weight(1f))
+        Switch(
+            checked = prefs.eveningDigestEnabled,
+            onCheckedChange = { persist(edited(prefs).copy(eveningDigestEnabled = it)) }
+        )
+    }
+    OutlinedTextField(
+        value = eveningText,
+        onValueChange = { eveningText = it.filter { ch -> ch.isDigit() }.take(2) },
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text("Evening hour") },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+    )
+    Spacer(Modifier.height(8.dp))
+    Button(
+        onClick = { persist(edited(prefs)) },
+        modifier = Modifier.fillMaxWidth()
+    ) { Text("Save watch settings") }
+    if (notificationsOff) {
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Notification permission is off, so digests will not fire.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 13.sp
+        )
+    }
+    Spacer(Modifier.height(12.dp))
+    Text("Debug log", fontWeight = FontWeight.Medium)
+    Spacer(Modifier.height(6.dp))
+    Text(
+        debugText.ifBlank { "No watch events yet." },
+        fontFamily = FontFamily.Monospace,
+        fontSize = 11.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    Spacer(Modifier.height(8.dp))
+    OutlinedButton(
+        onClick = {
+            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            cm.setPrimaryClip(ClipData.newPlainText("Copy debug log", debugText))
+            notice = "Debug log copied"
+        },
+        modifier = Modifier.fillMaxWidth()
+    ) { Text("Copy debug log") }
+    Spacer(Modifier.height(8.dp))
+    OutlinedButton(
+        onClick = {
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, debugText)
+            }
+            context.startActivity(Intent.createChooser(send, "Copy debug log"))
+        },
+        modifier = Modifier.fillMaxWidth()
+    ) { Text("Share debug log") }
+    notice?.let {
+        Spacer(Modifier.height(8.dp))
+        Text(it, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
     }
 }
 
