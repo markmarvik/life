@@ -9,6 +9,12 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <queries>
+        <package android:name="nodomain.freeyourgadget.gadgetbridge.zepptest" />
+        <package android:name="nodomain.freeyourgadget.gadgetbridge" />
+        <package android:name="nodomain.freeyourgadget.gadgetbridge.nightly" />
+    </queries>
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -45,6 +51,20 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+
+        <receiver
+            android:name=".watch.WatchMessageReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="nodomain.freeyourgadget.gadgetbridge.action.WATCH_APP_MESSAGE" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".watch.DigestReceiver"
+            android:enabled="true"
+            android:exported="false" />
     </application>
 
 </manifest>
