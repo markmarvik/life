@@ -5,11 +5,13 @@ A timeline of past events: Habits, Notes, Finances.
 Local-first (JSON on device). No accounts, cloud, ads, or Steady import.
 
 This is not a Steady fork. Do not add planner, due lists, skip, streaks as
-scores, groups, widgets, wearables, Deep Work, Path, or LAN web.
+scores, groups, widgets, Deep Work, Path, or LAN web. The only wearable
+is the BIP Max logging companion in the product rules.
 
 ## Product rules
 
 - Habits are log-when-you-do-it. No schedule, skip, or due list.
+- A BIP Max companion that only logs and reminds through Gadgetbridge is allowed. Do not add Steady-style wearable sync, health metrics, or Path.
 - Long-press a habit (picker or timeline row), including premade catalog
   rows, to edit name / icon / gray subtitle.
   - **Save changes** updates or *claims* that slot. Catalog items keep their

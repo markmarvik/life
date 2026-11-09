@@ -16,8 +16,14 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.life.app.data.ThemeOptions
+import androidx.lifecycle.lifecycleScope
 import com.life.app.needle.CaptureRuntime
 import com.life.app.ui.LifeViewModel
+import com.life.app.watch.DigestScheduler
+import com.life.app.watch.GadgetbridgeClient
+import com.life.app.watch.WatchSettingsStore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import com.life.app.ui.SettingsScreen
 import com.life.app.ui.TimelineScreen
 import com.life.app.ui.theme.LifeTheme
@@ -26,6 +32,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         CaptureRuntime.initContext(this)
+        lifecycleScope.launch(Dispatchers.IO) {
+            val prefs = WatchSettingsStore(applicationContext).load()
+            if (prefs.enabled) GadgetbridgeClient.registerListener(applicationContext, prefs)
+            DigestScheduler.scheduleAll(applicationContext, prefs)
+        }
         enableEdgeToEdge()
         setContent {
             val vm: LifeViewModel = viewModel(factory = LifeViewModel.factory(applicationContext))

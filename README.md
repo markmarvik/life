@@ -7,6 +7,8 @@ Local-first: no accounts, no ads, no cloud. Log what happened with one `+` butto
 
 This is a fresh app. It is not a fork of [Steady](https://github.com/markmarvik/steady). Steady’s planner, streaks, wearables, and scoring stayed behind on purpose.
 
+An optional BIP Max app in `watch/` logs habits and short notes into Life through Gadgetbridge. Install the `.zab` with Gadgetbridge’s File Installer (Zepp test). Leave Gadgetbridge Nightly installed; Life only registers a listener.
+
 ## What you do in Life
 
 1. Open the timeline.
@@ -63,6 +65,7 @@ app/src/main/java/com/life/app/
   stt/      16 kHz PCM16 mic
   ui/       timeline + composer + capture sheets + settings
   util/     haptics
+watch/      BIP Max (Zepp OS) companion, built with Zeus
 
 ios/Life/
   Data/     same domain, JSON on disk
