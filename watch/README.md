@@ -3,7 +3,7 @@
 Zepp OS app that logs habits and short notes into Life through Gadgetbridge watch-app messages.
 
 - App id: `3266101`
-- v1.3.0 swipes habits in a horizontal `VIEW_CONTAINER`. A single scroll-end snap sets `pos_x`. There are no `<` `>` buttons.
+- v1.4.0 stacks habits in a vertical `VIEW_CONTAINER`. A single scroll-end snap sets `pos_y`. Three cards fit in the safe band. Note and Sync stay fixed.
 - The Bip Max panel is 432×514 with a 106 px corner radius. `app.json` sets `_pikeCompatibled` so the drawing area is that full panel, not a centered 390×450 box.
 - Target: Amazfit Bip Max, `deviceSource` `11206915`
 - API: minimum 3.0, target 4.0

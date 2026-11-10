@@ -3,6 +3,7 @@ import test from 'node:test'
 import { PAGE_CAP } from '../page/pager.js'
 import {
   CARD,
+  GAP,
   ITEM_CAP,
   PAD,
   RAIL,
@@ -11,7 +12,7 @@ import {
   WIDGETS,
   focusOffset,
   itemScreenRect,
-  visibleWidth
+  visibleHeight
 } from '../page/layout.js'
 
 function pointInside(px, py) {
@@ -71,19 +72,23 @@ test('chrome stays on the panel and tappable widgets clear the corner radius', (
   assert.equal(ids.has('next'), false)
 })
 
-test('the rail shows a larger center card and a partial neighbor on each side', () => {
+test('exactly three cards fit in the rail and stay inside the curve', () => {
   assert.ok(RAIL.y >= SCREEN.r)
   assert.ok(RAIL.y + RAIL.h <= SCREEN.h - SCREEN.r)
-  assert.equal(PAD, Math.round((RAIL.w - CARD.w) / 2))
+  assert.equal(3 * CARD.h + 2 * GAP, RAIL.h)
+  assert.equal(PAD, STRIDE)
   const offset = focusOffset(1)
   const center = itemScreenRect(1, offset)
-  assert.equal(visibleWidth(1, offset), CARD.w)
-  assert.ok(visibleWidth(0, offset) > 0)
-  assert.ok(visibleWidth(0, offset) < CARD.w)
-  assert.ok(visibleWidth(2, offset) > 0)
-  assert.ok(visibleWidth(2, offset) < CARD.w)
+  const above = itemScreenRect(0, offset)
+  const below = itemScreenRect(2, offset)
+  assert.equal(visibleHeight(1, offset), CARD.h)
+  assert.equal(visibleHeight(0, offset), CARD.h)
+  assert.equal(visibleHeight(2, offset), CARD.h)
+  assert.equal(above.y, RAIL.y)
+  assert.equal(below.y + below.h, RAIL.y + RAIL.h)
   assert.equal(rectInsideCurve(center), true)
-  assert.ok(center.w > visibleWidth(0, offset))
+  assert.equal(rectInsideCurve(above), true)
+  assert.equal(rectInsideCurve(below), true)
 })
 
 test('note and sync sit in the bottom center and edge fills bleed to the panel', () => {
@@ -103,5 +108,5 @@ test('note and sync sit in the bottom center and edge fills bleed to the panel',
   assert.equal(byId.right.x + byId.right.w, SCREEN.w)
   assert.equal(byId.wash.y + byId.wash.h, SCREEN.h)
   assert.ok(byId.status.y + byId.status.h <= byId.note.y)
-  assert.equal(STRIDE, CARD.w + 16)
+  assert.equal(STRIDE, CARD.h + GAP)
 })
