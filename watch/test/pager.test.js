@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { PAGE_CAP, buildPages, keepIndex, markPage, step } from '../page/pager.js'
+import { PAGE_CAP, buildPages, keepIndex, markPage, nearestIndex, step } from '../page/pager.js'
 
 test('wants come before habits and logged today is kept', () => {
   const pages = buildPages(
@@ -23,6 +23,15 @@ test('caps the page list', () => {
   assert.equal(pages.length, PAGE_CAP)
   assert.equal(pages[0].id, 'w1')
   assert.equal(pages[1].id, 'h0')
+})
+
+test('snap offset settles on the nearest card', () => {
+  assert.equal(nearestIndex(0, 216, 4), 0)
+  assert.equal(nearestIndex(100, 216, 4), 0)
+  assert.equal(nearestIndex(108, 216, 4), 1)
+  assert.equal(nearestIndex(900, 216, 4), 3)
+  assert.equal(nearestIndex(-40, 216, 4), 0)
+  assert.equal(nearestIndex(10, 216, 0), 0)
 })
 
 test('step wraps and empty stays put', () => {

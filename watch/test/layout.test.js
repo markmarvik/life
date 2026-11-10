@@ -1,6 +1,18 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { SCREEN, WIDGETS } from '../page/layout.js'
+import { PAGE_CAP } from '../page/pager.js'
+import {
+  CARD,
+  ITEM_CAP,
+  PAD,
+  RAIL,
+  SCREEN,
+  STRIDE,
+  WIDGETS,
+  focusOffset,
+  itemScreenRect,
+  visibleWidth
+} from '../page/layout.js'
 
 function pointInside(px, py) {
   const { w, h, r } = SCREEN
@@ -43,10 +55,11 @@ function rectInsideCurve(rect) {
 
 test('screen metrics are the Bip Max panel', () => {
   assert.deepEqual(SCREEN, { w: 432, h: 514, r: 106 })
+  assert.equal(ITEM_CAP, PAGE_CAP)
 })
 
-test('every widget is on the panel and tappable widgets clear the corner radius', () => {
-  assert.equal(WIDGETS.length, 13)
+test('chrome stays on the panel and tappable widgets clear the corner radius', () => {
+  assert.equal(WIDGETS.length, 11)
   const ids = new Set()
   for (const rect of WIDGETS) {
     assert.equal(ids.has(rect.id), false)
@@ -54,6 +67,23 @@ test('every widget is on the panel and tappable widgets clear the corner radius'
     assert.equal(rectInsideScreen(rect), true, rect.id)
     if (rect.role === 'hit') assert.equal(rectInsideCurve(rect), true, rect.id)
   }
+  assert.equal(ids.has('prev'), false)
+  assert.equal(ids.has('next'), false)
+})
+
+test('the rail shows a larger center card and a partial neighbor on each side', () => {
+  assert.ok(RAIL.y >= SCREEN.r)
+  assert.ok(RAIL.y + RAIL.h <= SCREEN.h - SCREEN.r)
+  assert.equal(PAD, Math.round((RAIL.w - CARD.w) / 2))
+  const offset = focusOffset(1)
+  const center = itemScreenRect(1, offset)
+  assert.equal(visibleWidth(1, offset), CARD.w)
+  assert.ok(visibleWidth(0, offset) > 0)
+  assert.ok(visibleWidth(0, offset) < CARD.w)
+  assert.ok(visibleWidth(2, offset) > 0)
+  assert.ok(visibleWidth(2, offset) < CARD.w)
+  assert.equal(rectInsideCurve(center), true)
+  assert.ok(center.w > visibleWidth(0, offset))
 })
 
 test('note and sync sit in the bottom center and edge fills bleed to the panel', () => {
@@ -73,4 +103,5 @@ test('note and sync sit in the bottom center and edge fills bleed to the panel',
   assert.equal(byId.right.x + byId.right.w, SCREEN.w)
   assert.equal(byId.wash.y + byId.wash.h, SCREEN.h)
   assert.ok(byId.status.y + byId.status.h <= byId.note.y)
+  assert.equal(STRIDE, CARD.w + 16)
 })

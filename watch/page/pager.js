@@ -1,4 +1,4 @@
-export const PAGE_CAP = 24
+export const PAGE_CAP = 15
 
 export function buildPages(wants, habits) {
   const pages = []
@@ -12,6 +12,14 @@ export function buildPages(wants, habits) {
     pushPage(pages, 'habit', row, 'name', !!(row && row.loggedToday))
   }
   return pages
+}
+
+export function nearestIndex(offset, stride, count) {
+  if (count <= 0 || stride <= 0) return 0
+  const index = Math.round(offset / stride)
+  if (!(index > 0)) return 0
+  if (index >= count) return count - 1
+  return index
 }
 
 export function step(index, delta, count) {
