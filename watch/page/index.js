@@ -1,7 +1,7 @@
 import * as ble from '@zos/ble'
 import { createWidget, widget, prop, align, text_style, createKeyboard, deleteKeyboard, inputType, setStatusBarVisible } from '@zos/ui'
 import { setTimeout } from '@zos/timer'
-import { CARD, ITEM_CAP, PAD, RAIL, STRIDE, focusOffset, itemContentX, widgetById } from './layout.js'
+import { CARD, CARD_X, ITEM_CAP, RAIL, STRIDE, focusOffset, itemContentY, widgetById } from './layout.js'
 import { buildPages, keepIndex, markPage, nearestIndex } from './pager.js'
 
 const APP_ID = 3266101
@@ -17,7 +17,7 @@ const CYAN = 0x3dfff2
 const MAGENTA = 0xff2bd6
 const LIME = 0xc6ff4a
 const MUTED = 0x8ea0b8
-const CARD_Y = Math.round((RAIL.h - CARD.h) / 2)
+const CARD_X_POS = CARD_X
 
 let sidePort = 0
 let header = null
@@ -103,7 +103,7 @@ function freshTap() {
 
 function readOffset() {
   if (!rail) return focusOffset(index)
-  const value = rail.getProperty(prop.POS_X)
+  const value = rail.getProperty(prop.POS_Y)
   return typeof value === 'number' ? value : focusOffset(index)
 }
 
@@ -120,8 +120,8 @@ function placeSlots() {
     const page = i < count ? pages[i] : null
     const focused = page && i === index
     slots[i].setProperty(prop.MORE, {
-      x: page ? itemContentX(i) : 0,
-      y: CARD_Y,
+      x: CARD_X_POS,
+      y: page ? itemContentY(i) : 0,
       w: page ? CARD.w : 0,
       h: page ? CARD.h : 0,
       text: page ? shown(page.title) : '',
@@ -136,7 +136,7 @@ function settle(offset) {
   const target = focusOffset(focus)
   if (rail && Math.abs(offset - target) > 1) {
     settling = true
-    rail.setProperty(prop.POS_X, target)
+    rail.setProperty(prop.POS_Y, target)
     settling = false
   }
   paint()
@@ -219,7 +219,7 @@ function replacePages(wants, habits) {
   const previous = pages[index] || null
   pages = buildPages(wants, habits)
   index = keepIndex(pages, previous ? { kind: previous.kind, id: previous.id, index } : null)
-  if (rail) rail.setProperty(prop.POS_X, focusOffset(index))
+  if (rail) rail.setProperty(prop.POS_Y, focusOffset(index))
 }
 
 function noteValue(result) {
@@ -324,15 +324,15 @@ Page({
       scroll_complete_func: function (info) {
         if (settling) return
         let offset = readOffset()
-        if (info && typeof info.xoffset === 'number') offset = info.xoffset
+        if (info && typeof info.yoffset === 'number') offset = info.yoffset
         settle(offset)
       }
     })
     for (let i = 0; i < ITEM_CAP; i++) {
       const slot = i
       slots.push(rail.createWidget(widget.BUTTON, {
-        x: 0,
-        y: CARD_Y,
+        x: CARD_X_POS,
+        y: 0,
         w: 0,
         h: 0,
         radius: 22,
