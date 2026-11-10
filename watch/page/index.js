@@ -1,8 +1,8 @@
 import * as ble from '@zos/ble'
 import { createWidget, widget, prop, align, text_style, createKeyboard, deleteKeyboard, inputType, setStatusBarVisible } from '@zos/ui'
 import { setTimeout } from '@zos/timer'
-import { widgetById } from './layout.js'
-import { buildPages, keepIndex, markPage, step } from './pager.js'
+import { CARD, ITEM_CAP, PAD, RAIL, STRIDE, focusOffset, itemContentX, widgetById } from './layout.js'
+import { buildPages, keepIndex, markPage, nearestIndex } from './pager.js'
 
 const APP_ID = 3266101
 const WATCH_PORT = 20
@@ -17,11 +17,13 @@ const CYAN = 0x3dfff2
 const MAGENTA = 0xff2bd6
 const LIME = 0xc6ff4a
 const MUTED = 0x8ea0b8
+const CARD_Y = Math.round((RAIL.h - CARD.h) / 2)
 
 let sidePort = 0
 let header = null
 let kindText = null
-let card = null
+let rail = null
+let slots = []
 let mark = null
 let statusText = null
 let pages = []
@@ -32,6 +34,7 @@ let problem = ''
 let noteLogged = false
 let generation = 0
 let lastTap = 0
+let settling = false
 
 function utf8Encode(s) {
   const out = []
@@ -79,10 +82,6 @@ function frame(type, port2, body) {
   return buf
 }
 
-function box(id) {
-  return widgetById(id)
-}
-
 function paintText(w, text, color) {
   if (!w) return
   w.setProperty(prop.TEXT, text)
@@ -91,8 +90,8 @@ function paintText(w, text, color) {
 
 function shown(title) {
   const text = title || ''
-  if (text.length <= 18) return text
-  return text.slice(0, 17) + '…'
+  if (text.length <= 16) return text
+  return text.slice(0, 15) + '…'
 }
 
 function freshTap() {
@@ -102,27 +101,65 @@ function freshTap() {
   return true
 }
 
+function readOffset() {
+  if (!rail) return focusOffset(index)
+  const value = rail.getProperty(prop.POS_X)
+  return typeof value === 'number' ? value : focusOffset(index)
+}
+
+function slotColor(page, focused) {
+  if (!page) return MUTED
+  if (page.logged && focused) return LIME
+  if (!focused) return MUTED
+  return page.kind === 'want' ? MAGENTA : CYAN
+}
+
+function placeSlots() {
+  const count = pages.length
+  for (let i = 0; i < slots.length; i++) {
+    const page = i < count ? pages[i] : null
+    const focused = page && i === index
+    slots[i].setProperty(prop.MORE, {
+      x: page ? itemContentX(i) : 0,
+      y: CARD_Y,
+      w: page ? CARD.w : 0,
+      h: page ? CARD.h : 0,
+      text: page ? shown(page.title) : '',
+      color: slotColor(page, focused)
+    })
+  }
+}
+
+function settle(offset) {
+  const focus = nearestIndex(offset, STRIDE, pages.length)
+  index = focus
+  const target = focusOffset(focus)
+  if (rail && Math.abs(offset - target) > 1) {
+    settling = true
+    rail.setProperty(prop.POS_X, target)
+    settling = false
+  }
+  paint()
+}
+
 function paint() {
   const count = pages.length
   const page = count ? pages[index] : null
   paintText(header, count ? (index + 1) + ' / ' + count : 'LIFE', CYAN)
   if (!page) {
     paintText(kindText, '', MUTED)
-    card.setProperty(prop.TEXT, 'Path is clear')
-    card.setProperty(prop.COLOR, MUTED)
     paintText(mark, '', LIME)
   } else {
     const want = page.kind === 'want'
     paintText(kindText, want ? 'WANT' : 'HABIT', want ? MAGENTA : CYAN)
-    card.setProperty(prop.TEXT, shown(page.title))
-    card.setProperty(prop.COLOR, want ? MAGENTA : INK)
     paintText(mark, page.logged ? 'Logged' : '', LIME)
   }
+  placeSlots()
   if (holdError) return
   if (!ready) paintText(statusText, 'Syncing', CYAN)
   else if (noteLogged) paintText(statusText, 'Logged', LIME)
   else if (!count) paintText(statusText, 'Path is clear', MUTED)
-  else paintText(statusText, 'Tap the card', MUTED)
+  else paintText(statusText, '', MUTED)
 }
 
 function showProblem(reason) {
@@ -161,15 +198,14 @@ function sendSync() {
   armTimeout()
 }
 
-function turn(delta) {
-  if (!freshTap() || pages.length === 0) return
-  index = step(index, delta, pages.length)
-  paint()
-}
-
-function logCurrent() {
+function onSlot(slot) {
   if (!freshTap()) return
-  const page = pages[index]
+  const focus = nearestIndex(readOffset(), STRIDE, pages.length)
+  if (slot !== focus) {
+    settle(focusOffset(slot))
+    return
+  }
+  const page = pages[slot]
   if (!page) return
   holdError = false
   problem = ''
@@ -183,6 +219,7 @@ function replacePages(wants, habits) {
   const previous = pages[index] || null
   pages = buildPages(wants, habits)
   index = keepIndex(pages, previous ? { kind: previous.kind, id: previous.id, index } : null)
+  if (rail) rail.setProperty(prop.POS_X, focusOffset(index))
 }
 
 function noteValue(result) {
@@ -248,7 +285,7 @@ function onData(_index, data, size) {
 }
 
 function textWidget(id, color, size) {
-  const rect = box(id)
+  const rect = widgetById(id)
   return createWidget(widget.TEXT, {
     x: rect.x,
     y: rect.y,
@@ -263,64 +300,101 @@ function textWidget(id, color, size) {
   })
 }
 
-function button(id, label, normal, press, color, onClick) {
-  const rect = box(id)
-  return createWidget(widget.BUTTON, {
-    x: rect.x,
-    y: rect.y,
-    w: rect.w,
-    h: rect.h,
-    radius: 18,
-    normal_color: normal,
-    press_color: press,
-    color,
-    text: label,
-    text_size: id === 'card' ? 30 : 26,
-    click_func: onClick
-  })
-}
-
 Page({
   build() {
     setStatusBarVisible(false)
-    const bg = box('bg')
+    const bg = widgetById('bg')
     createWidget(widget.FILL_RECT, { x: bg.x, y: bg.y, w: bg.w, h: bg.h, color: 0x07080c })
-    const left = box('left')
+    const left = widgetById('left')
     createWidget(widget.FILL_RECT, { x: left.x, y: left.y, w: left.w, h: left.h, color: CYAN })
-    const right = box('right')
+    const right = widgetById('right')
     createWidget(widget.FILL_RECT, { x: right.x, y: right.y, w: right.w, h: right.h, color: MAGENTA })
-    const wash = box('wash')
+    const wash = widgetById('wash')
     createWidget(widget.FILL_RECT, { x: wash.x, y: wash.y, w: wash.w, h: wash.h, color: 0x10141c })
     header = textWidget('header', CYAN, 26)
     kindText = textWidget('kind', CYAN, 18)
-    card = button('card', 'Syncing', 0x101820, 0x163038, INK, logCurrent)
+    rail = createWidget(widget.VIEW_CONTAINER, {
+      x: RAIL.x,
+      y: RAIL.y,
+      w: RAIL.w,
+      h: RAIL.h,
+      scroll_enable: 1,
+      bounce: 1,
+      z_index: 1,
+      scroll_complete_func: function (info) {
+        if (settling) return
+        let offset = readOffset()
+        if (info && typeof info.xoffset === 'number') offset = info.xoffset
+        settle(offset)
+      }
+    })
+    for (let i = 0; i < ITEM_CAP; i++) {
+      const slot = i
+      slots.push(rail.createWidget(widget.BUTTON, {
+        x: 0,
+        y: CARD_Y,
+        w: 0,
+        h: 0,
+        radius: 22,
+        normal_color: 0x101820,
+        press_color: 0x163038,
+        color: INK,
+        text: '',
+        text_size: 28,
+        click_func: function () { onSlot(slot) }
+      }))
+    }
     mark = textWidget('mark', LIME, 22)
     statusText = textWidget('status', CYAN, 20)
-    button('prev', '<', 0x101820, 0x1c2830, CYAN, function () { turn(-1) })
-    button('next', '>', 0x101820, 0x1c2830, CYAN, function () { turn(1) })
-    button('note', 'Note', 0x2a1024, 0x4a1840, MAGENTA, function () {
-      if (!freshTap()) return
-      createKeyboard({
-        inputType: inputType.CHAR,
-        text: '',
-        onComplete: function (_, result) {
-          deleteKeyboard()
-          const text = noteValue(result).trim()
-          if (!text) return
-          noteLogged = false
-          holdError = false
-          problem = ''
-          paint()
-          if (!sendJson({ v: 1, type: 'note', text })) showProblem('')
-        },
-        onCancel: function () {
-          deleteKeyboard()
-        }
-      })
+    const note = widgetById('note')
+    createWidget(widget.BUTTON, {
+      x: note.x,
+      y: note.y,
+      w: note.w,
+      h: note.h,
+      radius: 18,
+      normal_color: 0x2a1024,
+      press_color: 0x4a1840,
+      color: MAGENTA,
+      text: 'Note',
+      text_size: 26,
+      click_func: function () {
+        if (!freshTap()) return
+        createKeyboard({
+          inputType: inputType.CHAR,
+          text: '',
+          onComplete: function (_, result) {
+            deleteKeyboard()
+            const text = noteValue(result).trim()
+            if (!text) return
+            noteLogged = false
+            holdError = false
+            problem = ''
+            paint()
+            if (!sendJson({ v: 1, type: 'note', text })) showProblem('')
+          },
+          onCancel: function () {
+            deleteKeyboard()
+          }
+        })
+      }
     })
-    button('sync', 'Sync', 0x06282c, 0x0c4450, CYAN, function () {
-      if (!freshTap()) return
-      sendSync()
+    const sync = widgetById('sync')
+    createWidget(widget.BUTTON, {
+      x: sync.x,
+      y: sync.y,
+      w: sync.w,
+      h: sync.h,
+      radius: 18,
+      normal_color: 0x06282c,
+      press_color: 0x0c4450,
+      color: CYAN,
+      text: 'Sync',
+      text_size: 26,
+      click_func: function () {
+        if (!freshTap()) return
+        sendSync()
+      }
     })
     paint()
     ble.createConnect(onData)
