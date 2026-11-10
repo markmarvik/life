@@ -1,10 +1,11 @@
+import { windowStart } from './pager.js'
+
 export const SCREEN = { w: 432, h: 514, r: 106 }
 
-export const RAIL = { id: 'rail', role: 'hit', x: 20, y: 106, w: 392, h: 274 }
-export const CARD = { w: 360, h: 88 }
-export const GAP = 5
+export const RAIL = { id: 'rail', role: 'hit', x: 20, y: 106, w: 392, h: 260 }
+export const CARD = { w: 360, h: 84 }
+export const GAP = 4
 export const STRIDE = CARD.h + GAP
-export const PAD = CARD.h + GAP
 export const CARD_X = Math.round((RAIL.w - CARD.w) / 2)
 export const ITEM_CAP = 15
 
@@ -12,7 +13,7 @@ export const WIDGETS = [
   { id: 'bg', role: 'decor', x: 0, y: 0, w: 432, h: 514 },
   { id: 'left', role: 'decor', x: 0, y: 0, w: 14, h: 514 },
   { id: 'right', role: 'decor', x: 418, y: 0, w: 14, h: 514 },
-  { id: 'wash', role: 'decor', x: 0, y: 408, w: 432, h: 106 },
+  { id: 'wash', role: 'decor', x: 14, y: 408, w: 404, h: 106 },
   { id: 'header', role: 'hit', x: 120, y: 18, w: 192, h: 32 },
   { id: 'kind', role: 'hit', x: 120, y: 52, w: 192, h: 26 },
   { id: 'mark', role: 'hit', x: 120, y: 80, w: 192, h: 22 },
@@ -30,11 +31,11 @@ export function widgetById(id) {
 }
 
 export function itemContentY(i) {
-  return PAD + i * STRIDE
+  return i * STRIDE
 }
 
-export function focusOffset(i) {
-  return i * STRIDE
+export function focusOffset(index, count) {
+  return windowStart(index, count) * STRIDE
 }
 
 export function itemScreenRect(i, offset) {

@@ -14,12 +14,24 @@ export function buildPages(wants, habits) {
   return pages
 }
 
+export function windowStart(index, count) {
+  if (count <= 0) return 0
+  const maxStart = count > 3 ? count - 3 : 0
+  let start = index - 1
+  if (!(start > 0)) start = 0
+  if (start > maxStart) start = maxStart
+  return start
+}
+
 export function nearestIndex(offset, stride, count) {
   if (count <= 0 || stride <= 0) return 0
-  const index = Math.round(offset / stride)
-  if (!(index > 0)) return 0
-  if (index >= count) return count - 1
-  return index
+  const maxStart = count > 3 ? count - 3 : 0
+  let start = Math.round(offset / stride)
+  if (!(start > 0)) start = 0
+  if (start > maxStart) start = maxStart
+  if (start <= 0) return 0
+  if (start >= maxStart) return count - 1
+  return start + 1
 }
 
 export function step(index, delta, count) {

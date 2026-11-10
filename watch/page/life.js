@@ -19,6 +19,7 @@ const LIME = 0xc6ff4a
 const MUTED = 0x8ea0b8
 const CARD_X_POS = CARD_X
 
+let preview = false
 let sidePort = 0
 let header = null
 let kindText = null
@@ -102,9 +103,9 @@ function freshTap() {
 }
 
 function readOffset() {
-  if (!rail) return focusOffset(index)
+  if (!rail) return focusOffset(index, pages.length)
   const value = rail.getProperty(prop.POS_Y)
-  return typeof value === 'number' ? value : focusOffset(index)
+  return typeof value === 'number' ? value : focusOffset(index, pages.length)
 }
 
 function slotColor(page, focused) {
@@ -130,16 +131,26 @@ function placeSlots() {
   }
 }
 
-function settle(offset) {
-  const focus = nearestIndex(offset, STRIDE, pages.length)
-  index = focus
-  const target = focusOffset(focus)
+function focusSlot(slot, offset) {
+  if (pages.length <= 0) {
+    index = 0
+    paint()
+    return
+  }
+  if (slot < 0) slot = 0
+  if (slot >= pages.length) slot = pages.length - 1
+  index = slot
+  const target = focusOffset(slot, pages.length)
   if (rail && Math.abs(offset - target) > 1) {
     settling = true
     rail.setProperty(prop.POS_Y, target)
     settling = false
   }
   paint()
+}
+
+function settle(offset) {
+  focusSlot(nearestIndex(offset, STRIDE, pages.length), offset)
 }
 
 function paint() {
@@ -163,6 +174,7 @@ function paint() {
 }
 
 function showProblem(reason) {
+  if (preview) return
   holdError = true
   problem = reason || ''
   paintText(statusText, OPEN_LIFE, MAGENTA)
@@ -189,6 +201,7 @@ function armTimeout() {
 }
 
 function sendSync() {
+  if (preview) return
   holdError = false
   problem = ''
   noteLogged = false
@@ -200,9 +213,8 @@ function sendSync() {
 
 function onSlot(slot) {
   if (!freshTap()) return
-  const focus = nearestIndex(readOffset(), STRIDE, pages.length)
-  if (slot !== focus) {
-    settle(focusOffset(slot))
+  if (slot !== index) {
+    focusSlot(slot, readOffset())
     return
   }
   const page = pages[slot]
@@ -219,7 +231,7 @@ function replacePages(wants, habits) {
   const previous = pages[index] || null
   pages = buildPages(wants, habits)
   index = keepIndex(pages, previous ? { kind: previous.kind, id: previous.id, index } : null)
-  if (rail) rail.setProperty(prop.POS_Y, focusOffset(index))
+  if (rail) rail.setProperty(prop.POS_Y, focusOffset(index, pages.length))
 }
 
 function noteValue(result) {
@@ -304,14 +316,15 @@ export function mountLife(samplePath) {
 Page({
   build() {
     setStatusBarVisible(false)
+    preview = !!samplePath
     const bg = widgetById('bg')
     createWidget(widget.FILL_RECT, { x: bg.x, y: bg.y, w: bg.w, h: bg.h, color: 0x07080c })
+    const wash = widgetById('wash')
+    createWidget(widget.FILL_RECT, { x: wash.x, y: wash.y, w: wash.w, h: wash.h, color: 0x10141c })
     const left = widgetById('left')
     createWidget(widget.FILL_RECT, { x: left.x, y: left.y, w: left.w, h: left.h, color: CYAN })
     const right = widgetById('right')
     createWidget(widget.FILL_RECT, { x: right.x, y: right.y, w: right.w, h: right.h, color: MAGENTA })
-    const wash = widgetById('wash')
-    createWidget(widget.FILL_RECT, { x: wash.x, y: wash.y, w: wash.w, h: wash.h, color: 0x10141c })
     header = textWidget('header', CYAN, 26)
     kindText = textWidget('kind', CYAN, 18)
     rail = createWidget(widget.VIEW_CONTAINER, {
@@ -393,7 +406,7 @@ Page({
       text: 'Sync',
       text_size: 26,
       click_func: function () {
-        if (!freshTap()) return
+        if (preview || !freshTap()) return
         sendSync()
       }
     })
@@ -404,8 +417,10 @@ Page({
     paint()
     ble.createConnect(onData)
     ble.addListener(function () {})
-    sendOpen()
-    sendSync()
+    if (!preview) {
+      sendOpen()
+      sendSync()
+    }
   },
   onDestroy() {
     if (sidePort) {
