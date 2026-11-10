@@ -3,6 +3,7 @@
 Zepp OS app that logs habits and short notes into Life through Gadgetbridge watch-app messages.
 
 - App id: `3266101`
+- The Bip Max panel is 432×514 with a 106 px corner radius. `app.json` sets `_pikeCompatibled` so the drawing area is that full panel, not a centered 390×450 box.
 - Target: Amazfit Bip Max, `deviceSource` `11206915`
 - API: minimum 3.0, target 4.0
 - `app.json` `expiredTime` is `31622400` (366 days). Zeus treats this as a duration, not a calendar timestamp: `172800` is the 48-hour default.
