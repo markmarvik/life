@@ -14,4 +14,8 @@ test('the device page never imports the sample path', () => {
   assert.equal(lifeSource.includes('sim-want-dentist'), false)
   assert.equal(app.includes('page/sim'), false)
   assert.equal(simSource.includes('SAMPLE_PATH'), true)
+  assert.match(lifeSource, /function showProblem\(reason\) \{\n  if \(preview\) return/)
+  assert.match(lifeSource, /function sendSync\(\) \{\n  if \(preview\) return/)
+  assert.match(lifeSource, /if \(preview \|\| !freshTap\(\)\) return\n        sendSync\(\)/)
+  assert.match(lifeSource, /if \(!preview\) \{\n      sendOpen\(\)\n      sendSync\(\)\n    \}/)
 })

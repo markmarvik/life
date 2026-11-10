@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { PAGE_CAP, buildPages, keepIndex, markPage, nearestIndex, step } from '../page/pager.js'
+import { PAGE_CAP, buildPages, keepIndex, markPage, nearestIndex, step, windowStart } from '../page/pager.js'
 
 test('wants come before habits and logged today is kept', () => {
   const pages = buildPages(
@@ -25,13 +25,25 @@ test('caps the page list', () => {
   assert.equal(pages[1].id, 'h0')
 })
 
-test('snap offset settles on the nearest card', () => {
-  assert.equal(nearestIndex(0, 216, 4), 0)
+test('snap clamps the focus to the top at the start and the bottom at the end', () => {
+  const stride = 88
+  const count = 8
+  assert.equal(windowStart(0, count), 0)
+  assert.equal(windowStart(1, count), 0)
+  assert.equal(windowStart(2, count), 1)
+  assert.equal(windowStart(7, count), 5)
+  assert.equal(nearestIndex(0, stride, count), 0)
+  assert.equal(nearestIndex(stride * 0.4, stride, count), 0)
+  assert.equal(nearestIndex(stride * 0.6, stride, count), 2)
+  assert.equal(nearestIndex(stride * 2, stride, count), 3)
+  assert.equal(nearestIndex(stride * 5, stride, count), 7)
+  assert.equal(nearestIndex(stride * 20, stride, count), 7)
+  assert.equal(nearestIndex(-40, stride, count), 0)
+  assert.equal(nearestIndex(stride, stride, 3), 0)
+  assert.equal(nearestIndex(10, stride, 0), 0)
   assert.equal(nearestIndex(100, 216, 4), 0)
-  assert.equal(nearestIndex(108, 216, 4), 1)
+  assert.equal(nearestIndex(108, 216, 4), 3)
   assert.equal(nearestIndex(900, 216, 4), 3)
-  assert.equal(nearestIndex(-40, 216, 4), 0)
-  assert.equal(nearestIndex(10, 216, 0), 0)
 })
 
 test('step wraps and empty stays put', () => {
