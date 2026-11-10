@@ -68,6 +68,7 @@ import com.life.app.needle.CaptureRuntime
 import com.life.app.watch.DigestScheduler
 import com.life.app.watch.GadgetbridgeClient
 import com.life.app.watch.WatchPreferences
+import com.life.app.watch.WatchRegistration
 import com.life.app.watch.WatchSettings
 import com.life.app.watch.WatchSettingsStore
 import java.time.LocalDate
@@ -293,17 +294,6 @@ private fun WatchSection() {
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
         PackageManager.PERMISSION_GRANTED
 
-    LaunchedEffect(Unit) {
-        val store = WatchSettingsStore(context.applicationContext)
-        val loaded = store.load()
-        prefs = loaded
-        packageText = loaded.gadgetbridgePackage
-        morningText = loaded.morningHour.toString()
-        eveningText = loaded.eveningHour.toString()
-        statusLabel = GadgetbridgeClient.statusLabel(context.applicationContext, loaded)
-        debugText = store.loadDebug()
-    }
-
     fun hour(text: String, fallback: Int): Int = text.trim().toIntOrNull()?.coerceIn(0, 23) ?: fallback
 
     fun edited(base: WatchPreferences): WatchPreferences = base.copy(
@@ -322,15 +312,37 @@ private fun WatchSection() {
                 gadgetbridgePackage = next.gadgetbridgePackage.trim().ifBlank { WatchSettings.DEFAULT_GB_PACKAGE }
             )
             store.save(saved)
-            prefs = saved
-            packageText = saved.gadgetbridgePackage
-            morningText = saved.morningHour.toString()
-            eveningText = saved.eveningHour.toString()
-            statusLabel = GadgetbridgeClient.registerListener(app, saved)
-            DigestScheduler.scheduleAll(app, saved)
+            val status = GadgetbridgeClient.registerListener(app, saved)
+            val fresh = store.load()
+            prefs = fresh
+            packageText = fresh.gadgetbridgePackage
+            morningText = fresh.morningHour.toString()
+            eveningText = fresh.eveningHour.toString()
+            statusLabel = status
+            DigestScheduler.scheduleAll(app, fresh)
             debugText = store.loadDebug()
             notice = "Saved"
         }
+    }
+
+    val btLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) persist(edited(prefs))
+    }
+
+    LaunchedEffect(Unit) {
+        val store = WatchSettingsStore(context.applicationContext)
+        val loaded = store.load()
+        prefs = loaded
+        packageText = loaded.gadgetbridgePackage
+        morningText = loaded.morningHour.toString()
+        eveningText = loaded.eveningHour.toString()
+        statusLabel = if (loaded.enabled) {
+            GadgetbridgeClient.registerListener(context.applicationContext, loaded)
+        } else {
+            WatchRegistration.OFF
+        }
+        prefs = store.load()
+        debugText = store.loadDebug()
     }
 
     Section("Watch")
@@ -349,6 +361,21 @@ private fun WatchSection() {
     }
     Spacer(Modifier.height(6.dp))
     Text(statusLabel, fontWeight = FontWeight.Medium, fontSize = 13.sp)
+    if (statusLabel == WatchRegistration.WAITING) {
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Gadgetbridge will not deliver watch messages until Life knows which watch is connected.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 13.sp
+        )
+        if (GadgetbridgeClient.needsBluetoothPermission(context)) {
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = { btLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT) },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Allow Bluetooth to find the watch") }
+        }
+    }
     Spacer(Modifier.height(8.dp))
     OutlinedTextField(
         value = packageText,

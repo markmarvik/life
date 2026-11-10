@@ -1,7 +1,9 @@
 package com.life.app
 
+import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,22 +23,24 @@ import com.life.app.needle.CaptureRuntime
 import com.life.app.ui.LifeViewModel
 import com.life.app.watch.DigestScheduler
 import com.life.app.watch.GadgetbridgeClient
+import com.life.app.watch.WatchRegistration
 import com.life.app.watch.WatchSettingsStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.life.app.ui.SettingsScreen
 import com.life.app.ui.TimelineScreen
 import com.life.app.ui.theme.LifeTheme
 
 class MainActivity : ComponentActivity() {
+    private val bluetoothPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) registerWatch()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         CaptureRuntime.initContext(this)
-        lifecycleScope.launch(Dispatchers.IO) {
-            val prefs = WatchSettingsStore(applicationContext).load()
-            if (prefs.enabled) GadgetbridgeClient.registerListener(applicationContext, prefs)
-            DigestScheduler.scheduleAll(applicationContext, prefs)
-        }
+        registerWatch()
         enableEdgeToEdge()
         setContent {
             val vm: LifeViewModel = viewModel(factory = LifeViewModel.factory(applicationContext))
@@ -66,6 +70,21 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    private fun registerWatch() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val prefs = WatchSettingsStore(applicationContext).load()
+            if (prefs.enabled) {
+                val status = GadgetbridgeClient.registerListener(applicationContext, prefs)
+                if (status == WatchRegistration.WAITING && GadgetbridgeClient.needsBluetoothPermission(this@MainActivity)) {
+                    withContext(Dispatchers.Main) {
+                        bluetoothPermission.launch(Manifest.permission.BLUETOOTH_CONNECT)
+                    }
+                }
+            }
+            DigestScheduler.scheduleAll(applicationContext, prefs)
         }
     }
 }
