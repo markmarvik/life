@@ -9,8 +9,16 @@ const TYPE_OPEN = 1
 const TYPE_CLOSE = 2
 const TYPE_MESSAGE = 4
 const OPEN_LIFE = 'Open Life on your phone'
+const INK = 0xe8f7ff
+const CYAN = 0x3dfff2
+const MAGENTA = 0xff2bd6
+const LIME = 0xc6ff4a
+const MUTED = 0x8ea0b8
+const WANT_BG = 0x24101f
+const HABIT_BG = 0x0c1c24
 
 let sidePort = 0
+let stateText = null
 let statusText = null
 let noteText = null
 let list = null
@@ -71,22 +79,35 @@ function show(w, t) {
   if (w) w.setProperty(prop.TEXT, t)
 }
 
-function showStatus(text) {
-  show(statusText, text)
+function paintText(w, text, color) {
+  if (!w) return
+  w.setProperty(prop.TEXT, text)
+  if (color != null) w.setProperty(prop.COLOR, color)
+}
+
+function showState(text, color) {
+  paintText(stateText, text, color)
+}
+
+function showStatus(text, color) {
+  paintText(statusText, text, color)
 }
 
 function showProblem(reason) {
   holdError = true
   problem = reason || ''
-  showStatus(problem ? OPEN_LIFE + '\n' + problem : OPEN_LIFE)
+  showState('LINK', MAGENTA)
+  showStatus(problem ? OPEN_LIFE + '\n' + problem : OPEN_LIFE, MAGENTA)
 }
 
 function showConnected() {
-  if (!holdError) showStatus('Life')
+  if (holdError) return
+  showState(rows.length === 0 && ready ? 'CLEAR' : 'LIVE', LIME)
+  showStatus(rows.length === 0 && ready ? 'Path is clear' : 'Today', MUTED)
 }
 
 function paintNote() {
-  show(noteText, noteMark === 'Logged' ? 'Note Logged' : '')
+  show(noteText, noteMark === 'Logged' ? 'Logged' : '')
 }
 
 function sendOpen() {
@@ -111,6 +132,9 @@ function armTimeout() {
 
 function sendSync() {
   holdError = false
+  problem = ''
+  showState('SYNC', CYAN)
+  showStatus('Syncing', CYAN)
   if (!sendJson({ v: 1, type: 'sync' })) showProblem('')
   armTimeout()
 }
@@ -118,49 +142,85 @@ function sendSync() {
 function listData() {
   const data = []
   for (let i = 0; i < rows.length; i++) {
-    data.push({ title: rows[i].title, mark: rows[i].mark })
+    const row = rows[i]
+    data.push({
+      kind: row.kind === 'want' ? 'WANT' : 'HABIT',
+      title: row.title,
+      mark: row.mark
+    })
   }
   return data
+}
+
+function typeConfig() {
+  let wants = 0
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].kind === 'want') wants += 1
+  }
+  const config = []
+  if (wants > 0) config.push({ start: 0, end: wants - 1, type_id: 1 })
+  if (rows.length > wants) config.push({ start: wants, end: rows.length - 1, type_id: 2 })
+  return config
 }
 
 function paintList() {
   if (!list) return
   const data = listData()
+  const types = typeConfig()
   list.setProperty(prop.UPDATE_DATA, {
     data_array: data,
     data_count: data.length,
+    data_type_config: types,
+    data_type_config_count: types.length,
     on_page: 1
   })
 }
 
+function rowText(color, kindColor, markColor) {
+  return [
+    { x: 18, y: 8, w: 140, h: 22, key: 'kind', color: kindColor, text_size: 16 },
+    { x: 18, y: 30, w: 250, h: 40, key: 'title', color: color, text_size: 28 },
+    { x: 268, y: 28, w: 112, h: 36, key: 'mark', color: markColor, text_size: 20 }
+  ]
+}
+
 function ensureList() {
   if (list || rows.length === 0) return
+  const types = typeConfig()
   list = createWidget(widget.SCROLL_LIST, {
     x: 16,
-    y: 108,
+    y: 124,
     w: 400,
-    h: 300,
-    item_space: 8,
+    h: 280,
+    item_space: 10,
     item_config: [
       {
         type_id: 1,
-        item_height: 68,
-        item_bg_color: 0x1a1a1a,
-        item_bg_radius: 16,
-        text_view: [
-          { x: 14, y: 6, w: 250, h: 56, key: 'title', color: 0xffffff, text_size: 26 },
-          { x: 268, y: 6, w: 110, h: 56, key: 'mark', color: 0x8ee0b0, text_size: 20 }
-        ],
-        text_view_count: 2
+        item_height: 78,
+        item_bg_color: WANT_BG,
+        item_bg_radius: 18,
+        text_view: rowText(INK, MAGENTA, LIME),
+        text_view_count: 3
+      },
+      {
+        type_id: 2,
+        item_height: 78,
+        item_bg_color: HABIT_BG,
+        item_bg_radius: 18,
+        text_view: rowText(INK, CYAN, LIME),
+        text_view_count: 3
       }
     ],
-    item_config_count: 1,
+    item_config_count: 2,
     data_array: listData(),
     data_count: rows.length,
+    data_type_config: types,
+    data_type_config_count: types.length,
     item_click_func: function (_item, index) {
       const row = rows[index]
       if (!row) return
       holdError = false
+      problem = ''
       if (row.kind === 'want') {
         if (!sendJson({ v: 1, type: 'want_done', wantId: row.id })) showProblem('')
       } else if (row.kind === 'habit') {
@@ -269,28 +329,63 @@ function onData(_index, data, size) {
 
 Page({
   build() {
+    createWidget(widget.FILL_RECT, {
+      x: 0,
+      y: 0,
+      w: 432,
+      h: 514,
+      color: 0x07080c
+    })
+    createWidget(widget.FILL_RECT, {
+      x: 20,
+      y: 58,
+      w: 392,
+      h: 3,
+      color: CYAN
+    })
+    createWidget(widget.TEXT, {
+      x: 20,
+      y: 14,
+      w: 180,
+      h: 38,
+      color: CYAN,
+      text_size: 32,
+      align_v: align.CENTER_V,
+      text: 'LIFE'
+    })
+    stateText = createWidget(widget.TEXT, {
+      x: 200,
+      y: 16,
+      w: 212,
+      h: 34,
+      color: CYAN,
+      text_size: 22,
+      align_h: align.RIGHT,
+      align_v: align.CENTER_V,
+      text: 'SYNC'
+    })
     statusText = createWidget(widget.TEXT, {
-      x: 16,
-      y: 12,
-      w: 400,
-      h: 88,
-      color: 0xffffff,
-      text_size: 26,
-      align_h: align.CENTER_H,
+      x: 20,
+      y: 68,
+      w: 392,
+      h: 50,
+      color: CYAN,
+      text_size: 22,
       align_v: align.CENTER_V,
       text_style: text_style.WRAP,
       text: 'Syncing'
     })
     createWidget(widget.BUTTON, {
       x: 16,
-      y: 418,
-      w: 190,
-      h: 64,
-      radius: 32,
-      normal_color: 0x0050a0,
-      press_color: 0x003070,
+      y: 416,
+      w: 192,
+      h: 68,
+      radius: 18,
+      normal_color: 0x2a0a22,
+      press_color: 0x5a1248,
+      color: MAGENTA,
       text: 'Note',
-      text_size: 26,
+      text_size: 28,
       click_func: function () {
         createKeyboard({
           inputType: inputType.CHAR,
@@ -302,6 +397,7 @@ Page({
             noteMark = ''
             paintNote()
             holdError = false
+            problem = ''
             if (!sendJson({ v: 1, type: 'note', text: text })) showProblem('')
           },
           onCancel: function () {
@@ -311,15 +407,16 @@ Page({
       }
     })
     createWidget(widget.BUTTON, {
-      x: 226,
-      y: 418,
-      w: 190,
-      h: 64,
-      radius: 32,
-      normal_color: 0x404040,
-      press_color: 0x202020,
+      x: 224,
+      y: 416,
+      w: 192,
+      h: 68,
+      radius: 18,
+      normal_color: 0x06282c,
+      press_color: 0x0c4450,
+      color: CYAN,
       text: 'Sync',
-      text_size: 26,
+      text_size: 28,
       click_func: function () {
         ready = false
         sendSync()
@@ -327,11 +424,11 @@ Page({
     })
     noteText = createWidget(widget.TEXT, {
       x: 16,
-      y: 486,
+      y: 488,
       w: 400,
-      h: 24,
-      color: 0x8ee0b0,
-      text_size: 20,
+      h: 22,
+      color: LIME,
+      text_size: 18,
       align_h: align.CENTER_H,
       text: ''
     })

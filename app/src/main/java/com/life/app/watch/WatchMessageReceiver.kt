@@ -58,7 +58,7 @@ private suspend fun handle(context: Context, intent: Intent) {
         recordWatchDebug(context, "info", "ignore", mapOf("appId" to canonical.orEmpty()))
         return
     }
-    GadgetbridgeClient.rememberDevice(intent.getStringExtra(WatchPayload.EXTRA_DEVICE))
+    GadgetbridgeClient.rememberDevice(context, intent.getStringExtra(WatchPayload.EXTRA_DEVICE))
     val encoded = intent.getStringExtra(WatchPayload.EXTRA_PAYLOAD)
     val body = WatchPayload.decode(encoded)
     if (body == null) {

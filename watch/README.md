@@ -12,7 +12,7 @@ Zeus (`@zeppos/zeus-cli` 1.9.3, the same CLI as the message test app) still writ
 ```sh
 npm install -g @zeppos/zeus-cli@1.9.3
 cd watch
-zeus build -t bipmax
+zeus build -t "Amazfit Bip Max"
 python3 stamp_expiry.py
 ```
 

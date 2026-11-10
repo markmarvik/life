@@ -21,7 +21,8 @@ data class WatchPreferences(
     val morningDigestEnabled: Boolean = true,
     val eveningDigestEnabled: Boolean = true,
     val morningHour: Int = 8,
-    val eveningHour: Int = 20
+    val eveningHour: Int = 20,
+    val deviceAddress: String? = null
 )
 
 class WatchSettingsStore(private val context: Context) {
