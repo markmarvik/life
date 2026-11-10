@@ -1,0 +1,53 @@
+{
+  "configVersion": "v3",
+  "app": {
+    "appId": 3266101,
+    "appName": "Life",
+    "appType": "app",
+    "version": {
+      "code": 6,
+      "name": "1.4.1"
+    },
+    "icon": "icon.png",
+    "vender": "life",
+    "description": "Simulator preview with a sample path",
+    "_pikeCompatibled": 1
+  },
+  "permissions": [],
+  "runtime": {
+    "apiVersion": {
+      "compatible": "3.0",
+      "target": "4.0",
+      "minVersion": "3.0"
+    }
+  },
+  "targets": {
+    "bipmax": {
+      "module": {
+        "page": {
+          "pages": ["page/sim"]
+        },
+        "app-side": {
+          "path": "app-side/index"
+        }
+      },
+      "platforms": [
+        {
+          "name": "bipmax",
+          "deviceSource": 11206915,
+          "st": "s",
+          "sr": "w432",
+          "dw": 432
+        }
+      ],
+      "designWidth": 432
+    }
+  },
+  "i18n": {
+    "en-US": {
+      "appName": "Life"
+    }
+  },
+  "defaultLanguage": "en-US",
+  "expiredTime": 31622400
+}

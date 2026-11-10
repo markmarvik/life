@@ -4,6 +4,7 @@ Zepp OS app that logs habits and short notes into Life through Gadgetbridge watc
 
 - App id: `3266101`
 - v1.4.0 stacks habits in a vertical `VIEW_CONTAINER`. A single scroll-end snap sets `pos_y`. Three cards fit in the safe band. Note and Sync stay fixed.
+- The device package (`app.json`, page `page/index`) has no sample cards. `python3 build_sim.py` builds a simulator-only package from `app.sim.json` (`page/sim`) under `/tmp/life-watch-sim/dist`. Do not install that file on the watch.
 - The Bip Max panel is 432×514 with a 106 px corner radius. `app.json` sets `_pikeCompatibled` so the drawing area is that full panel, not a centered 390×450 box.
 - Target: Amazfit Bip Max, `deviceSource` `11206915`
 - API: minimum 3.0, target 4.0

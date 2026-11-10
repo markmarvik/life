@@ -17,7 +17,7 @@ export const WIDGETS = [
   { id: 'kind', role: 'hit', x: 120, y: 52, w: 192, h: 26 },
   { id: 'mark', role: 'hit', x: 120, y: 80, w: 192, h: 22 },
   RAIL,
-  { id: 'status', role: 'hit', x: 116, y: 384, w: 200, h: 32 },
+  { id: 'status', role: 'hit', x: 16, y: 382, w: 400, h: 26 },
   { id: 'note', role: 'hit', x: 112, y: 424, w: 100, h: 64 },
   { id: 'sync', role: 'hit', x: 220, y: 424, w: 100, h: 64 }
 ]
