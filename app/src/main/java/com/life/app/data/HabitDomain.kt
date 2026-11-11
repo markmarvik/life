@@ -9,7 +9,7 @@ object HabitDomain {
     fun logCount(data: AppData, habitId: String): Int =
         data.events.count { it.kind == EventKind.HABIT && it.habitId == habitId }
 
-    /** Existing def, or a catalog template so premade rows can be edited before first log. */
+    
     fun defForEdit(data: AppData, habitId: String): HabitDef? {
         val existing = data.habitById(habitId)
         val cat = HabitCatalog.byId(habitId)
@@ -18,16 +18,9 @@ object HabitDomain {
         }
         return cat?.toDef(createdAt = 0L)
     }
+    
 
-    /**
-     * Rename / re-icon an existing habit, or claim a premade catalog slot.
-     * Claiming uses the catalog id so the default row does not come back
-     * beside the edited one.
-     *
-     * Logs keep the same [habitId]. If the new name already belongs to a
-     * different habit, logs are merged onto that habit and this definition
-     * is dropped.
-     */
+    
     fun edit(
         data: AppData,
         habitId: String,
@@ -64,14 +57,9 @@ object HabitDomain {
             data.copy(habits = data.habits.map { if (it.id == habitId) updated else it })
         }
     }
+    
 
-    /**
-     * Insert a new habit with [name] / [icon]. Existing logs stay on their
-     * original habit. If [reassignEventId] is set, that one log moves onto
-     * the new habit.
-     *
-     * A same-name habit is reused instead of duplicating.
-     */
+    
     fun saveAsNew(
         data: AppData,
         name: String,
@@ -107,6 +95,7 @@ object HabitDomain {
         }
         return next
     }
+    
 
     fun ensureHabit(data: AppData, habitId: String, nowMs: Long): Pair<AppData, HabitDef>? {
         data.habitById(habitId)?.let { return data to it }
