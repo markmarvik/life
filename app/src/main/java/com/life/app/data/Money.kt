@@ -32,10 +32,7 @@ object Money {
         return minor / scale
     }
 
-    /**
-     * Parse a user-typed amount ("4.50", "4,50", "12") into minor units.
-     * Returns null when empty or not a non-negative number.
-     */
+    
     fun parseToMinor(input: String, currencyCode: String): Long? {
         val t = input.trim().replace(" ", "").replace(',', '.')
         if (t.isEmpty()) return null
@@ -59,13 +56,13 @@ object Money {
         currencyCode: String,
         locale: Locale = Locale.getDefault()
     ): String {
-        val nf = NumberFormat.getCurrencyInstance(locale)
+        val localeCurrencyFormat = NumberFormat.getCurrencyInstance(locale)
         try {
-            nf.currency = Currency.getInstance(currencyCode)
+            localeCurrencyFormat.currency = Currency.getInstance(currencyCode)
         } catch (_: Exception) {
-            // keep locale currency
+            
         }
-        return nf.format(toMajor(minor, currencyCode))
+        return localeCurrencyFormat.format(toMajor(minor, currencyCode))
     }
 
     fun formatSigned(
